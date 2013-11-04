@@ -1,0 +1,78 @@
+
+A visual has properties that affect OpenGL objects such as attributes, uniforms, textures...
+For instance, the "position" property can contain the data of the "position" attribute, but there's not necessarily a one-to-one mapping between a visual property and an OpenGL object. A TextVisual may have a "text" property that affect many objects (textures, VBOs...).
+
+A visual can come with shader code. The code can be templated using jinja2 (widespread, pure Python, Python 2.6+ & 3.x, on GitHub, natively included in Anaconda, WinPython, ActivePython, canopy mandatory dependency for the IPython notebook). Template variables = visual properties. If statements possible in the code (might be faster than if in GLSL?).
+
+How to chain shaders? A shader snippet is a standard shader with declarations and a main function. Declarations include:
+
+  * attribute vec3 a_var;
+  * uniforms vec2 u_var;
+  * texture vec2 t_var;
+  * in vec2 i_var;
+  * out vec2 o_var;
+
+Attributes, uniforms and textures work as usual. There are two special types of variables: in and out. Those are input and output to this shader snippet.
+
+NavigationShader
+    // Implement panning + zooming  
+    attribute vec2 a_position;
+    uniform vec2 u_pan;
+    uniform vec2 u_zoom;
+    void main(){
+        gl_Position = vec4(u_zoom * (a_position + u_pan), 0., 1.);
+    }
+
+ShiftEasingShader
+    // Smoothly shift a vertex with easing
+    attribute vec2 a_position;
+    uniform float t;
+    uniform float u_easing_c;
+    uniform vec2 u_shift;
+    void main(){
+        gl_Position = a_position + u_shift * (1-exp(-u_easing_c * t));
+    }
+    
+Functional: define input and output variables, and code body
+
+    in vec2 i_pos;
+    in float t;
+    in float i_easing_c;
+    in vec2 i_shift;
+    out vec2 o_pos;
+    void main(){
+        o_pos = i_pos + i_shift * (1-exp(-i_easing_c * t));
+    }
+    
+    in vec2 i_pos;
+    in vec2 i_pan;
+    in vec2 i_zoom;
+    out vec2 o_pos;
+    void main(){
+        o_pos = u_zoom * (a_position + u_pan);
+    }
+    
+
+Variable
+    name
+    type
+    
+OutputVariable
+InputVariable
+    
+ShaderNode:
+    parents (other ShaderNode, or None if root)
+    code_body
+    vars_input (list of InputVariable)
+    vars_output (list of OutputVariable)
+  
+ShaderGraph
+    nodes
+    uniforms = list of InputVariables
+    attributes = list of InputVariables
+    textures = list of InputVariables
+    add_node(node, parents=[])
+    compile()
+
+"""
+
