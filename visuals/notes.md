@@ -66,6 +66,39 @@ WindowCoordinates (pixels).
 
 The last system can has a "ratio" property, that specifies how [-1,1] is mapped onto the pixels of the window (taking the width/height of the window into account).
 
+There are a few special builtin coordinate systems (the user can create new systems)
+
+    UnitCoordinates: window = [-1, 1]^2 or [-r, r]^2 with ratio
+    WindowCoordinates: window = [0, w] x [0, h]
+
+These systems are universal, i.e. they are common to video games, art visualization, and scientific plotting. For scientific plotting, there are additional systems like DataCoordinates, NormalizedDataCoordinates and ViewCoordinates (zoom/pan).
+
+An undirected graph described the relations between the coordinate systems. Any coordinate system needs to be connected, directly or indirectly, to the "master" coordinate system which is UnitCoordinates. The CoordinateSystemManager can transform from any such system to the unit system by concatenating transforms. Multiple LinearTransforms are equivalent to a single LinearTransform with a single matrix transform (optimization).
+
+For each visual, there's a vertex shader snippet that returns a position value in a certain coordinate system. In the scene graph, when adding a visual, we need to specify which coordinate system it belongs to. Then, Vispy is smart enough to concatenate the shaders such that the final position of the vertices actually belong to the requested coordinate system.
+
+Example: a visual belongs to ViewCoordinates. The vertex shader snippet returns a vec2 o_position. The ViewCoordinates ==> UnitCoordinates transform is computed (resulting in GLSL code) with a shader snippet vec2 i_position ==> vec2 o_position. This shader is appended after the visual's snippet.
+
+The SceneGraph takes care of the transformations. It can have several properties. For example, there will be a UsernavSceneGraph with pan/zoom capabilities, with public pan and zoom properties. In addition, there's an external object that respond to user actions (mouse move, keyboard) and that updates these public values to bind user actions to pan/zoom events.
+
+    UsernavSceneGraph(SceneGraph)
+    # Contain visuals in the scene, handle transforms
+        ViewCoordinateSystem
+            plot1
+            plot2
+        UnitCoordinateSystem
+            static overlay
+        
+        pan
+        zoom
+    
+    UsernavSceneInterface(SceneInterface)
+    # Link user actions to the scene graph
+        def on_mouse_move(event):
+            # self.scene.pan = ...
+            # self.scene.zoom = ...
+    
+        
 ## Worked example
 
 A very simple example through the different layers.
@@ -91,20 +124,16 @@ No panning/zooming here.
 
 A SceneGraph contains a bunch of visuals, and a bunch of coordinate systems.
 Each visual belongs to a coordinate system.
-There are a few special builtin coordinate systems (the user can create new systems)
 
-    UnitCoordinates: window = [-1, 1]^2 or [-r, r]^2 with ratio
-    WindowCoordinates: window = [0, w] x [0, h]
+A visual yields position values, for
 
-These systems are universal, i.e. they are common to video games, art visualization, and scientific plotting. For scientific plotting, there are additional systems like DataCoordinates, NormalizedDataCoordinates and ViewCoordinates (zoom/pan).
-    
     x = np.random.rand(1000, 2)
     discs = DiscCollection(position=x, color='blue', size=10, lw=2, lc='black')
     
     scene_graph = SceneGraph()
     scene_graph.add('scatter_plot_1', discs, coords='view')  # enable zoom/pan
     
-    # what the line above is to add the visual to the scene graph, and assign
+    # what the line above does is to add the visual to the scene graph, and assign
     # it to a coordinate system. When the user pans/zooms, the coordinate system
     # is updated, and the u_zoom and u_pan uniforms are updated. For all visuals
     # in this system, the vertex shader node
