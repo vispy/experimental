@@ -99,6 +99,10 @@ class Camera(Visual):
     """ The Camera class defines the viewpoint from which a World of
     Visual objects is visualized. It is itself a Visual (with
     transformations) but by default does not draw anything.
+    
+    Next to the normal transformation, a camera also defines a
+    projection tranformation that defines the camera view. This can for
+    instance be orthogrpaic, perspective, log, polar, etc.
     """
     def __init__(self, parent=None):
         Visual.__init__(self, parent)
@@ -119,14 +123,37 @@ class Camera(Visual):
     
     def draw(sef):
         pass
-
-
-
+    
+    def get_camera_transform(self):
+        """ Get the absolute position of the camera in the world.
+        Returns an (x,y,z) tuple.
+        """
+        # todo: perhaps a camera should have a transform that can only 
+        # translate and rotate... on the other hand, a parent visual
+        # could have a scaling in it, so we need to remove the scaling anyway...
+        
+        # Get total transform of the camera
+        object = self
+        camtransform = object.transform.copy()
+        
+        while True:
+            object = object.parent
+            if not isinstance(object, Visual):
+                break
+            if object.transform is not None:
+                camtransform[...] = np.dot(camtransform, object.transform)
+        
+        # We are only interested in translation and rotation,
+        # to we set the scaling to unit
+        camtransform[np.eye(4,dtype=np.bool)] = 1.0
+        
+        # Return inverse!
+        return np.linalg.inv(camtransform)
 
 
 class World(object):
     """ Collection of visuals, that is used by one or more
-    Viewports. A World is *not* a Visual.
+    Viewports. A World is *not* a Visual itself.
     """
     
     def __init__(self):
@@ -150,7 +177,7 @@ class World(object):
     
 
 
-class Viewport(Visual):
+class BaseViewport(object):
     """ The Viewport defines a view on a world that is populated by
     Visual objects. It also has a camera associated with it, which
     is a Visual object in the world itself.
@@ -159,24 +186,37 @@ class Viewport(Visual):
     """
     
     def __init__(self, parent=None):
-        Visual.__init__(self, parent)
         
-        self.bgcolor = (0,0,0)
-        
-        self._size = 1, 1
+        self._bgcolor = (0.0, 0.0, 0.0, 1.0)
+        self._resolution = 1, 1
         self._world = World()
         self._engine = MiniEngine()
         self._camera = None
     
     
     @property
-    def size(self):
-        return self._size
+    def bgcolor(self):
+        return self._bgcolor
     
-    @size.setter
-    def size(self, value):
-        return int(M[0,0]), int(M[1,1])
-        #self._size = value
+    @bgcolor.setter
+    def bgcolor(self, value):
+        # Check / convert
+        value = [float(v) for v in value]
+        if len(value) < 3:
+            raise ValueError('bgcolor must be 3 or 4 floats.')
+        elif len(value) == 3:
+            value.append(1.0)
+        elif len(value) == 4:
+            pass
+        else:
+            raise ValueError('bgcolor must be 3 or 4 floats.')
+        # Set
+        self._bgcolor = tuple(value)
+    
+    
+    @property
+    def resolution(self):
+        return self._resolution
     
     
     @property
@@ -217,40 +257,77 @@ class Viewport(Visual):
             return cams
         
         return getcams(self.world)
+    
+    
+    def draw(self):
+        w, h = self.resolution
+        x, y = 0, 0
         
+        # nice rectangle, we can use viewport and scissors
+        gl.glViewport(x, y, w, h)
+        gl.glScissor(x, y, w, h)
+        gl.glEnable(gl.GL_SCISSOR_TEST)
+        # Draw bgcolor
+        gl.glClearColor(*self.bgcolor)
+        gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
+        
+        self._engine.draw(self)
+    
+
+
+
+class Viewport(Visual, BaseViewport):
+    """ 
+    """
+    
+    def __init__(self, parent=None):
+        Visual.__init__(self, parent)
+        BaseViewport.__init__(self, parent)
+    
+    
+    @property
+    def resolution(self):
+        return self.transform[0,0], self.transform[1,1]
+    
     
     def draw(self):
         M = self.transform
         w, h = int(M[0,0]), int(M[1,1])
         x, y = int(M[-1,0]), int(M[-1,1])
         
-        if M[0,1] or M[0,2] or M[1,0] or M[1,2] or M[2,0] or M[2,1]:
-            pass # todo: we cannot use a viewport or scissors, but need an FBO
+        need_FBO = False
+        need_FBO |= bool( M[0,1] or M[0,2] or M[1,0] or M[1,2] or M[2,0] or M[2,1] )
+        need_FBO |= (w,h) != self.resolution
+        
+        if need_FBO:
+            # todo: we cannot use a viewport or scissors, but need an FBO
+            raise NotImplementedError('Need FBO to draw this viewport')
         else:
             # nice rectangle, we can use viewport and scissors
             gl.glViewport(x, y, w, h)
             gl.glScissor(x, y, w, h)
             gl.glEnable(gl.GL_SCISSOR_TEST)
             # Draw bgcolor
-            gl.glClearColor(*(self.bgcolor+(1,)))
+            gl.glClearColor(*self.bgcolor)
             gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
             
         self._engine.draw(self)
+    
 
 
 from vispy import app
 from vispy import app, gloo
 gl = gloo.gl
 
-class Figure(app.Canvas):
+class Figure(app.Canvas, BaseViewport):
     """ The Figure class represents the top-level object. It has a world
     with Visual objects (and a camera). And a Viewport object to look onto 
     that world.
     """
     
     def __init__(self, *args, **kwargs):
-        self.viewport = Viewport()
         app.Canvas.__init__(self, *args, **kwargs)
+        BaseViewport.__init__(self)
     
     def on_initialize(self, event):
         # todo: this must be done in the engine ...
@@ -262,16 +339,15 @@ class Figure(app.Canvas):
         width, height = event.size
         #gl.glViewport(0, 0, width, height)
         #self.viewport.size = width, height
-        self.viewport.transform[0,0] = width
-        self.viewport.transform[1,1] = height
+        self._resolution = width, height
     
     def on_paint(self, event):
         gl.glClearColor(0,0,0,1);
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
-        self.viewport.draw()
+        self.draw()
     
     def on_mouse_move(self, event):
-        self.viewport.camera.on_mouse_move(event)
+        self.camera.on_mouse_move(event)
 
 
 
@@ -281,24 +357,11 @@ class MiniEngine:
     """
     
     def draw(self, viewport):
-        if not isinstance(viewport, Viewport):
+        if not isinstance(viewport, BaseViewport):
             raise ValueError('MiniEngine.draw expects a Viewport instance.')
         
-        # Get total transform of the camera
-        # todo: this should probably be inverted and whatnot
+        camtransform = viewport.camera.get_camera_transform()
         projection = viewport.camera.get_projection(viewport)
-        object = viewport.camera
-        camtransform = object.transform
-        while True:
-            object = object.parent
-            if not isinstance(object, Visual):
-                break
-            if object.transform is not None:
-                camtransform[...] = np.dot(camtransform, object.transform)
-        
-        # We are only interested in translation and rotation,
-        # to we set the scaling to unit
-        camtransform[np.eye(4,dtype=np.bool)] = 1.0
         
         def _draw_visual(visual, transform):
             # Set transformation
