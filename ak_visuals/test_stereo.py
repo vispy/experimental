@@ -1,5 +1,4 @@
 from vispy_experimental import ak_visuals as visuals
-from vispy_experimental.ak_visuals.somevisuals import PointsVisual
 
 from vispy import app
 from vispy.util import transforms
@@ -11,6 +10,7 @@ class MyFigure(visuals.Figure):
         cam2.on_mouse_move(event)
         
 fig = MyFigure()#visuals.Figure()
+fig.size = 800, 400
 fig.show()
 
 #camera = visuals.NDCCamera(fig.viewport.world)
@@ -22,10 +22,10 @@ vp2 = visuals.Viewport(fig.viewport.world)
 vp1.world = vp2.world
 
 # Put them next to each-other
-transforms.scale(vp1.transform, 200, 200)
-transforms.scale(vp2.transform, 200, 200)
+transforms.scale(vp1.transform, 400, 400)
+transforms.scale(vp2.transform, 400, 400)
 transforms.translate(vp1.transform, 0)
-transforms.translate(vp2.transform, 200, 0, 0)
+transforms.translate(vp2.transform, 400, 0, 0)
 
 # Create two cameras
 cam0 = visuals.TwoDCamera(vp1.world)  # Placeholder camera
@@ -44,7 +44,7 @@ vp1.bgcolor = (0,0,0.2)
 vp2.bgcolor = (0,0.2,0)
 
 # Create a visual
-points = PointsVisual(vp1.world)
+points = visuals.PointsVisual(vp1.world)
 
 app.run()
 

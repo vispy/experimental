@@ -1,5 +1,4 @@
 from vispy_experimental import ak_visuals as visuals
-from vispy_experimental.ak_visuals.somevisuals import PointsVisual
 
 from vispy import app
 from vispy.util import transforms
@@ -18,7 +17,7 @@ camera.ylim = -100, 500
 fig.viewport.camera = camera
 
 
-points = PointsVisual(fig.viewport.world)
+points = visuals.PointsVisual(fig.viewport.world)
 #         transforms.scale(points.transform, 0.5, 0.5)
 #         transforms.translate(points.transform, 100, -100, 0)
 

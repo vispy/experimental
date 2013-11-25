@@ -5,11 +5,11 @@ import numpy as np
 from vispy import app, gloo
 gl = gloo.gl
 
-from vispy_experimental import ak_visuals as visuals
+from .base import Visual
 from vispy.util import transforms
 
 
-class PointsVisual(visuals.Visual):
+class PointsVisual(Visual):
     
     VERT_SHADER = """
         // Stuff that each visual must have ...
@@ -43,7 +43,7 @@ class PointsVisual(visuals.Visual):
     """
 
     def __init__(self, parent, N=1000):
-        visuals.Visual.__init__(self, parent)
+        Visual.__init__(self, parent)
         
         data = np.random.uniform(0, 400, (N,3)).astype('float32')
         
@@ -52,5 +52,5 @@ class PointsVisual(visuals.Visual):
         
         
     def draw(self):
-        visuals.Visual.draw(self)
+        Visual.draw(self)
         self.program.draw('POINTS')
