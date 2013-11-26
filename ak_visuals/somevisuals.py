@@ -45,8 +45,14 @@ class PointsVisual(Visual):
     def __init__(self, parent, N=1000):
         Visual.__init__(self, parent)
         
-        data = np.random.uniform(0, 400, (N,3)).astype('float32')
+        if isinstance(N, np.ndarray):
+            data = N
+        elif isinstance(N, int):
+            data = np.random.uniform(0, 400, (N,3)).astype('float32')
+        else:
+            raise ValueError('Invalid value for N.')
         
+        # Create program and vertex buffer
         self.program = gloo.Program(self.VERT_SHADER, self.FRAG_SHADER)
         self.program['a_position'] = gloo.VertexBuffer(data)
         
