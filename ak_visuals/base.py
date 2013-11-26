@@ -222,7 +222,7 @@ class BaseViewport(object):
         the Figure, size and resolution are equal by definition. However,
         perhaps we want to give visuals a "size" property later.
         """
-        return self.transform[0,0], self.transform[1,1]
+        return int(self.transform[0,0]), int(self.transform[1,1])
     
     
     @property
