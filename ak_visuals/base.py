@@ -188,7 +188,6 @@ class BaseViewport(object):
     def __init__(self, parent=None):
         
         self._bgcolor = (0.0, 0.0, 0.0, 1.0)
-        self._resolution = 1, 1
         self._world = World()
         self._engine = MiniEngine()
         self._camera = None
@@ -216,7 +215,14 @@ class BaseViewport(object):
     
     @property
     def resolution(self):
-        return self._resolution
+        """ The number of pixels (in x and y) that are avalailable in
+        the viewport.
+        
+        Note: it would perhaps make sense to call this "size", because for
+        the Figure, size and resolution are equal by definition. However,
+        perhaps we want to give visuals a "size" property later.
+        """
+        return self.transform[0,0], self.transform[1,1]
     
     
     @property
@@ -285,11 +291,6 @@ class Viewport(Visual, BaseViewport):
         BaseViewport.__init__(self, parent)
     
     
-    @property
-    def resolution(self):
-        return self.transform[0,0], self.transform[1,1]
-    
-    
     def draw(self):
         M = self.transform
         w, h = int(M[0,0]), int(M[1,1])
@@ -329,17 +330,15 @@ class Figure(app.Canvas, BaseViewport):
         app.Canvas.__init__(self, *args, **kwargs)
         BaseViewport.__init__(self)
     
+    @property
+    def resolution(self):
+        return self.size
+    
     def on_initialize(self, event):
         # todo: this must be done in the engine ...
         gl.glClearColor(0,0,0,1);
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE)
-    
-    def on_resize(self, event):
-        width, height = event.size
-        #gl.glViewport(0, 0, width, height)
-        #self.viewport.size = width, height
-        self._resolution = width, height
     
     def on_paint(self, event):
         gl.glClearColor(0,0,0,1);
