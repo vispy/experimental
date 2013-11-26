@@ -6,7 +6,8 @@ class Visual(object):
     """ Base class to represent a citizen of a World object. Typically
     a visual is used to visualize something, although this is not
     strictly necessary. It may for instance also be used as a container
-    to apply a certain transformation to a group of objects.
+    to apply a certain transformation to a group of objects, or a camera
+    object.
     """
     
     def __init__(self, parent=None):
@@ -96,14 +97,15 @@ class Visual(object):
 
 
 class Camera(Visual):
-    """ The Camera class defines the viewpoint from which a World of
-    Visual objects is visualized. It is itself a Visual (with
-    transformations) but by default does not draw anything.
+    """ The Camera class defines the viewpoint from which a World is
+    visualized. It is itself a Visual (with transformations) but by
+    default does not draw anything.
     
     Next to the normal transformation, a camera also defines a
     projection tranformation that defines the camera view. This can for
-    instance be orthogrpaic, perspective, log, polar, etc.
+    instance be orthographic, perspective, log, polar, etc.
     """
+    
     def __init__(self, parent=None):
         Visual.__init__(self, parent)
         
@@ -125,10 +127,10 @@ class Camera(Visual):
         pass
     
     def get_camera_transform(self):
-        """ Get the absolute position of the camera in the world.
-        Returns an (x,y,z) tuple.
+        """ The the transformation matrix of the camera to the world
+        (i.e. the transformation is already inverted).
         """
-        # todo: perhaps a camera should have a transform that can only 
+        # note: perhaps a camera should have a transform that can only 
         # translate and rotate... on the other hand, a parent visual
         # could have a scaling in it, so we need to remove the scaling anyway...
         
@@ -151,13 +153,20 @@ class Camera(Visual):
         return np.linalg.inv(camtransform)
 
 
+
 class World(object):
-    """ Collection of visuals, that is used by one or more
-    Viewports. A World is *not* a Visual itself.
+    """ A World object represents a collection of Visuals, that is used
+    by one or more Viewports. A World is *not* a Visual itself.
+    
+    The abstraction of a world allows one collection of Visual objects
+    to be shown in two Viewports. Whereas a Visual always has one parent,
+    a World does not have the concept of a parent.
+    
     """
     
     def __init__(self):
         #Visual.__init__(self, None)
+        # todo: a world should probably know which viewports use it
         self._children = []
     
     
@@ -178,11 +187,13 @@ class World(object):
 
 
 class BaseViewport(object):
-    """ The Viewport defines a view on a world that is populated by
-    Visual objects. It also has a camera associated with it, which
-    is a Visual object in the world itself.
+    """ The Viewport acts as the "portal" from one world to another.
+    The Figure class is the portal between your OS/app and a Vispy World
+    object. The Viewport class is a subclass of Visual that exists in
+    one world, while exposing a view on another.
     
-    There is one toplevel visual in each canvas.
+    Each ViewPort also has a camera associated with it, which is a
+    Visual object in the world itself.
     """
     
     def __init__(self, parent=None):
@@ -283,7 +294,9 @@ class BaseViewport(object):
 
 
 class Viewport(Visual, BaseViewport):
-    """ 
+    """ A Viewport that is also a Visual. Can be used for subplots. Or
+    for instance a virtual TV-screen in a game that gives a view on 
+    another "world".
     """
     
     def __init__(self, parent=None):
@@ -321,9 +334,8 @@ from vispy import app, gloo
 gl = gloo.gl
 
 class Figure(app.Canvas, BaseViewport):
-    """ The Figure class represents the top-level object. It has a world
-    with Visual objects (and a camera). And a Viewport object to look onto 
-    that world.
+    """ The Figure class represents the top-level object. It is a combination
+    of app.Canvase and BaseViewport.
     """
     
     def __init__(self, *args, **kwargs):
@@ -346,6 +358,7 @@ class Figure(app.Canvas, BaseViewport):
         self.draw()
     
     def on_mouse_move(self, event):
+        # todo: we need a proper way to deal with events
         self.camera.on_mouse_move(event)
 
 
