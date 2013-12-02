@@ -7,27 +7,27 @@ This example illustrates:
   
 """
 
-from vispy_experimental import ak_visuals as visuals
+from vispy_experimental import ak_entities as entities
 
 from vispy import app
 from vispy.util import transforms
 
 
-class MyFigure(visuals.Figure):
+class MyFigure(entities.Figure):
     def on_mouse_move(self, event):
         cam0.on_mouse_move(event)
 #         cam2.on_mouse_move(event)
 
-fig = MyFigure()#visuals.Figure()
+fig = MyFigure()#entities.Figure()
 fig.size = 800, 400
 fig.show()
 
-#camera = visuals.NDCCamera(fig.world)
-camera = visuals.PixelCamera(fig.world)
+#camera = entities.NDCCamera(fig.world)
+camera = entities.PixelCamera(fig.world)
 
 # Create two viewports, use the same world
-vp1 = visuals.Viewport(fig.world)
-vp2 = visuals.Viewport(fig.world)
+vp1 = entities.Viewport(fig.world)
+vp2 = entities.Viewport(fig.world)
 vp1.world = vp2.world
 
 # Put them next to each-other
@@ -37,9 +37,9 @@ transforms.translate(vp1.transform, 0)
 transforms.translate(vp2.transform, 400, 0, 0)
 
 # Create two cameras
-cam0 = visuals.TwoDCamera(vp1.world)  # Placeholder camera
-cam1 = visuals.TwoDCamera(cam0)
-cam2 = visuals.TwoDCamera(cam0)
+cam0 = entities.TwoDCamera(vp1.world)  # Placeholder camera
+cam1 = entities.TwoDCamera(cam0)
+cam2 = entities.TwoDCamera(cam0)
 
 # Set limits of cam0, this is only to set position right, its fov is not used
 cam0.xlim = -100, 500
@@ -56,8 +56,8 @@ vp2.camera = cam2
 vp1.bgcolor = (0,0,0.2)
 vp2.bgcolor = (0,0.2,0)
 
-# Create a visual
-points = visuals.PointsVisual(vp1.world)
+# Create a entity
+points = entities.PointsEntity(vp1.world)
 
 app.run()
 
