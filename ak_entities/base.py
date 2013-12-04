@@ -144,8 +144,11 @@ class Camera(Entity):
                 camtransform[...] = np.dot(camtransform, object.transform)
         
         # We are only interested in translation and rotation,
-        # to we set the scaling to unit
-        camtransform[np.eye(4,dtype=np.bool)] = 1.0
+        # so we set the scaling to unit
+        #camtransform[np.eye(4,dtype=np.bool)] = 1.0
+        # NO! This screws up rotations. So either we live with the fact 
+        # that scaling also scales the camera view, or we find a real way
+        # of normalizing the homography matrix for scale.
         
         # Return inverse!
         return np.linalg.inv(camtransform)

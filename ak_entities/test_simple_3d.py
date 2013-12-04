@@ -1,8 +1,6 @@
 """
-Simple test showing one entity.
-It also illustrates using a hierarchy of entities to easily transform
-objects. Similarly, the camera can be positioned by transforming a parent
-object. Further, this example runs an FPS counter.
+Simple test showing one entity using a 3D camera with interaction.
+You need to move the mouse to initialize the view for now.
 """
 
 import time
@@ -17,10 +15,9 @@ fig.size = 600, 600
 fig.show()
 
 # Create a camera inside a container
-camcontainer = entities.PixelCamera(fig.world)
-camera = entities.TwoDCamera(camcontainer)#(self._viewport.world)
-camera.xlim = -100, 500
-camera.ylim = -100, 500
+camcontainer = entities.PixelCamera()
+camera = entities.ThreeDCamera(camcontainer)#(self._viewport.world)
+camera._fov = 90  # or other between 0 and 179
 
 
 # Explicitly set the second camera, or the Viewport will pick the second
@@ -29,16 +26,6 @@ fig.viewport.camera = camera
 # Create a points entity inside a container
 pointscontainer = entities.Entity(fig.world)
 points = entities.PointsEntity(pointscontainer, 1000)
-
-# Transform either the camera container or the point container.
-# Their effects should be mutually reversed. 
-# UNCOMMENT TO ACTIVATE
-#
-#transforms.translate(camcontainer.transform, 50, 50)
-#transforms.rotate(camcontainer.transform, 10, 0,0,1)
-#
-#transforms.translate(pointscontainer.transform, 50, 50)
-#transforms.rotate(pointscontainer.transform, 10, 0,0,1)
 
 
 # Count FPS
