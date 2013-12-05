@@ -2,11 +2,115 @@
 If you don't get this, don't worry :)
 """
 
+import time
+import numpy as np
+
+from vispy import app, gloo
+from vispy.util import transforms
+
 from vispy_experimental import ak_entities as entities
 
-import numpy as np
-from vispy import app
-from vispy.util import transforms
+
+class ZebraVisual:
+    
+    VERT_SHADER = """
+        // Stuff that each visual must have ...
+        uniform   mat4 transform_model;
+        uniform   mat4 transform_view;
+        uniform   mat4 transform_projection;
+        
+        uniform float t;
+
+        attribute vec3 a_position1;
+        attribute vec3 a_position2;
+        
+        varying vec4 v_color;
+        void main (void) {
+            vec3 a_position = a_position1*(1.0-t) + a_position2*t;
+            gl_Position = vec4(a_position, 1.0);
+            gl_Position = transform_projection * transform_view 
+                        * transform_model * gl_Position;
+            v_color = vec4(0.0, 1.0, 1.0, 1.0);
+        }
+    """
+    
+    FRAG_SHADER = """
+        varying vec4 v_color;
+        void main()
+        {    
+            gl_FragColor = v_color;
+        }
+    """
+    
+    def __init__(self,):
+        
+        
+        vertices = []
+        dr = 0.15
+        
+        for r in range(-1,4):
+            r *= dr*2
+            r1, r2 = r, r+dr
+            r1, r2 = max(r1, 0), max(r2, 0)
+            
+            N = 64
+            for i in range(N):
+                x1 = np.cos(np.pi*2 * i/N)
+                y1 = np.sin(np.pi*2 * i/N)
+                x2 = np.cos(np.pi*2 * (i+1)/N)
+                y2 = np.sin(np.pi*2 * (i+1)/N)
+                
+                vertices.append( (x1*r1, y1*r1, 0))
+                vertices.append( (x1*r2, y1*r2, 0))
+                vertices.append( (x2*r2, y2*r2, 0))
+                #
+                vertices.append( (x1*r1, y1*r1, 0))
+                vertices.append( (x2*r2, y2*r2, 0))
+                vertices.append( (x2*r1, y2*r1, 0))
+        
+        vertices2 = vertices
+        vertices = []
+        
+        for r in range(5):
+            r *= dr*2
+            r1, r2 = r, r+dr
+            
+            N = 64
+            for i in range(N):
+                x1 = np.cos(np.pi*2 * i/N)
+                y1 = np.sin(np.pi*2 * i/N)
+                x2 = np.cos(np.pi*2 * (i+1)/N)
+                y2 = np.sin(np.pi*2 * (i+1)/N)
+                
+                vertices.append( (x1*r1, y1*r1, 0))
+                vertices.append( (x1*r2, y1*r2, 0))
+                vertices.append( (x2*r2, y2*r2, 0))
+                #
+                vertices.append( (x1*r1, y1*r1, 0))
+                vertices.append( (x2*r2, y2*r2, 0))
+                vertices.append( (x2*r1, y2*r1, 0))
+        
+        
+        data1 = np.array(vertices2, dtype='float32' )
+        data2 = np.array(vertices, dtype='float32' )
+        
+        # Create program and vertex buffer
+        self.program = gloo.Program(self.VERT_SHADER, self.FRAG_SHADER)
+        self.program['a_position1'] = gloo.VertexBuffer(data1)
+        self.program['a_position2'] = gloo.VertexBuffer(data2)
+    
+    
+    def draw(self):
+        self.program['t'] = time.time() % 1
+        self.program.draw('TRIANGLES')
+        
+
+
+
+class ZebraEntity(entities.Entity):
+    def __init__(self, parent, *args):
+        entities.Entity.__init__(self, parent)
+        self._visual = ZebraVisual(*args)
 
 
 class MyFigure(entities.Figure):
@@ -56,7 +160,8 @@ vp2.bgcolor = (0,0.2,0)
 # cameras are still upside down :D
 data = np.random.uniform(-2, 2, (1000,3)).astype('float32')
 data[:,2] = 1.80
-points = entities.PointsEntity(vp1.world, data)
+# points = entities.PointsEntity(vp1.world, data)
+zebra = ZebraEntity(vp1.world)
 
 app.run()
 
