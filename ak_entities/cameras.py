@@ -262,7 +262,7 @@ class FirstPersonCamera(Camera):
         
         fov = self._fov
         aspect = 1.0
-        fx, fy = 2.0, 2.0 # todo: hard-coded
+        fx = fy = 1.0 # todo: hard-coded
         
         # Calculate distance to center in order to have correct FoV and fy.
         if fov == 0:
