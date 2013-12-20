@@ -24,28 +24,28 @@ NCOLS = 5
 NROWS = 5
 
 # Create a figure
-fig = entities.Figure()
+fig = entities.CanvasWithScene()
 fig.size = RES, RES
 fig.show()
 
 # Add a simple normal pixelcamera. This camera looks at the many
 # subplots. Each subplot has its own world with a visual and a camera.
-entities.PixelCamera(fig.world)
+entities.PixelCamera(fig.viewport)
 
 for col in range(NCOLS):
     for row in range(NROWS):
         # Create viewport
-        viewport = entities.Viewport(fig.world)
+        viewport = entities.Viewport(fig.viewport)
         viewport.transform[-1, 0] = col * RES / NCOLS
         viewport.transform[-1, 1] = row * RES / NROWS
         viewport.transform[0,0] = RES/NCOLS
         viewport.transform[1,1] = RES/NROWS
         # Create a camera in the viewport
-        camera = entities.TwoDCamera(viewport.world)
+        camera = entities.TwoDCamera(viewport)
         camera.xlim = -100, 500
         camera.ylim = -100, 500
         # Create a points visual in the viewport
-        points = entities.PointsEntity(viewport.world, 1000)
+        points = entities.PointsEntity(viewport, 1000)
 
 
 # Count FPS

@@ -12,13 +12,13 @@ from vispy import app
 from vispy.util import transforms
 
 # Create a figure
-fig = entities.Figure()
+fig = entities.CanvasWithScene()
 fig.size = 600, 600
 fig.show()
 
 # Create a camera inside a container
-camcontainer = entities.PixelCamera(fig.world)
-camera = entities.TwoDCamera(camcontainer)#(self._viewport.world)
+camcontainer = entities.PixelCamera(fig.viewport)
+camera = entities.TwoDCamera(camcontainer)#(self._viewport)
 camera.xlim = -100, 500
 camera.ylim = -100, 500
 
@@ -27,7 +27,7 @@ camera.ylim = -100, 500
 fig.viewport.camera = camera
 
 # Create a points entity inside a container
-pointscontainer = entities.Entity(fig.world)
+pointscontainer = entities.Entity(fig.viewport)
 points = entities.PointsEntity(pointscontainer, 1000)
 
 # Transform either the camera container or the point container.

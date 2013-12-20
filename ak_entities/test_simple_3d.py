@@ -10,7 +10,7 @@ from vispy import app
 from vispy.util import transforms
 
 # Create a figure
-fig = entities.Figure()
+fig = entities.CanvasWithScene()
 fig.size = 600, 600
 fig.show()
 
@@ -24,7 +24,7 @@ camera._fov = 90  # or other between 0 and 179
 fig.viewport.camera = camera
 
 # Create a points entity inside a container
-pointscontainer = entities.Entity(fig.world)
+pointscontainer = entities.Entity(fig.viewport)
 points = entities.PointsEntity(pointscontainer, 1000)
 
 

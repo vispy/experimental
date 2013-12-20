@@ -1,18 +1,29 @@
+"""
+This module implements the core classed of the vispy scenegraph. The
+scenegraph is a graph of which the nodes are made up of Entity objects.
+
+"""
+
 import numpy as np
 
 
 class Entity(object):
-    """ Base class to represent a citizen of a World object. Typically
-    an Entity is used to visualize something, although this is not
-    strictly necessary. It may for instance also be used as a container
-    to apply a certain transformation to a group of objects, or a camera
-    object.
+    """ Base class to represent a citizen of a scene. Typically an
+    Entity is used to visualize something, although this is not strictly
+    necessary. It may for instance also be used as a container to apply
+    a certain transformation to a group of objects, or an object that
+    performs a specific task without being visible.
+    
+    Each entity can have zero or more children. Each entity will
+    typically have one parent, although multiple parents are allowed.
+    It is recommended to use multi-parenting with care.
     """
     
     def __init__(self, parent=None):
         
         # Entities are organized in a parent-children hierarchy
         self._children = []
+        self._parents = ()
         self._parent = None
         self.parent = parent
         
@@ -26,50 +37,69 @@ class Entity(object):
     
     @property
     def children(self):
+        """ The list of children of this entity.
+        """
         return [c for c in self._children]
     
     
     @property
     def parent(self):
+        """ The parent entity. In case there are multiple parents,
+        the first parent is given. During a draw, however, the parent
+        from which the draw originated is given.
+        """
         return self._parent
     
     @parent.setter
     def parent(self, value):
-        
-        # Establish old parent and old list where self was in
-        oldparent = self.parent
-        oldlist = None
-        if oldparent is None:
-            pass
-        elif isinstance(oldparent, (Entity, World)):
-            oldlist = oldparent._children
-        else:
-            print('This should not happen: old parent was not an Entity or World')
-        
-        # Establish the new list we should add ourselves to
-        newlist = None
         if value is None:
-            pass
-        elif value is self:
-            raise ValueError('An Entity cannot have itself as parent.')
-        elif isinstance(value, (Entity, World)):
-            newlist = value._children
+            self.parents = ()
         else:
-            raise ValueError('Entity.parent must be an Entity or world.')
+            self.parents = (value,)
+    
+    
+    @property
+    def parents(self):
+        """ Get/set the tuple of parents. Typically the tuple will have
+        one element. 
+        """
+        return self._parents
+    
+    @parents.setter
+    def parents(self, parents):
         
-        # Remove from old list (and from new list just to be sure)
-        if oldlist is not None:
-            while self in oldlist:
-                oldlist.remove(self)
-        if newlist is not None:
-            if newlist is not oldlist:
-                while self in newlist:
-                    newlist.remove(self)
+        # Test input
+        if not isinstance(parents, (tuple, list)):
+            raise ValueError("Entity.parents must be a tuple of list.")
         
-        # Set parent and add to its list 
-        self._parent = value
-        if newlist is not None:
-            newlist.append(self)
+        # Test that all parents are entities
+        for p in parents:
+            if not isinstance(p, Entity):
+                raise ValueError('A parent of an entity must be an entity too,'
+                                 ' not %s.' % p.__class__.__name__)
+        
+        # Test that each parent occurs exactly once
+        parentids = set([id(p) for p in parents])
+        if len(parentids) != len(parents):
+            raise ValueError('An entity cannot have thw same parent twice '
+                             '(%r)' % self)
+        
+        # Remove from old parents (and from new parents just to be sure)
+        oldparents = self.parents
+        for oldparent in oldparents:
+            while self in oldparent._children:
+                oldparent._children.remove(self)
+        for parent in parents:
+            while self in parent._children:
+                parnt._children.remove(self)
+        
+        # Set new parents and add ourself to their list of children
+        self._parents = tuple(parents)
+        for parent in parents:
+            parent._children.append(self)
+        
+        # Set singleton parent
+        self._parent = self._parents[0] if self._parents else None
         
         # todo: Should we destroy GL objects (because we are removed)
 #         # from an OpenGL context)? 
@@ -95,7 +125,7 @@ class Entity(object):
 
 
 class Camera(Entity):
-    """ The Camera class defines the viewpoint from which a World is
+    """ The Camera class defines the viewpoint from which a scene is
     visualized. It is itself an Entity (with transformations) but by
     default does not draw anything.
     
@@ -125,7 +155,7 @@ class Camera(Entity):
         pass
     
     def get_camera_transform(self):
-        """ The the transformation matrix of the camera to the world
+        """ The the transformation matrix of the camera to the scene
         (i.e. the transformation is already inverted).
         """
         # note: perhaps a camera should have a transform that can only 
@@ -138,8 +168,11 @@ class Camera(Entity):
         
         while True:
             object = object.parent
-            if not isinstance(object, Entity):
-                break
+            if object is None:
+                break  # Root viewport
+            elif isinstance(object, Viewport):
+                break  # Go until the any parent viewport
+            assert isinstance(object, Entity)
             if object.transform is not None:
                 camtransform[...] = np.dot(camtransform, object.transform)
         
@@ -155,42 +188,11 @@ class Camera(Entity):
 
 
 
-class World(object):
-    """ A World object represents a collection of Entities, that is used
-    by one or more Viewports. A World is *not* an Entity itself.
-    
-    The abstraction of a world allows one collection of Entity objects
-    to be shown in two Viewports. Whereas an Entity always has one parent,
-    a World does not have the concept of a parent.
-    
-    """
-    
-    def __init__(self):
-        # todo: a world should probably know which viewports use it
-        self._children = []
-    
-    
-    def __iter__(self):
-        return self._children.__iter__()
-    
-    
-    @property
-    def children(self):
-        return [c for c in self._children]
-    
-    
-    def __repr__(self):
-        return "<World populated with %i Entities>" % len(self._children)
-    
-    
-    
-
-
 class Viewport(Entity):
-    """ The Viewport acts as the "portal" from one world to another.
-    It is an Entity that exists in one world, while exposing a view on
+    """ The Viewport acts as the "portal" from one scene to another.
+    It is an Entity that exists in one scene, while exposing a view on
     another. Note that there is always one toploevel Viewport that does
-    *not* live in a world, but is attached to a canvas.
+    *not* live in a scene, but is attached to a canvas.
     
     Each ViewPort also has a camera associated with it.
     """
@@ -202,7 +204,6 @@ class Viewport(Entity):
         
         # Components of the viewport
         self._bgcolor = (0.0, 0.0, 0.0, 1.0)
-        self._world = World()
         
         self._engine = DrawingSystem()
         self._camera = None
@@ -241,18 +242,6 @@ class Viewport(Entity):
     
     
     @property
-    def world(self):
-        return self._world
-    
-    
-    @world.setter
-    def world(self, world):
-        if not isinstance(world, World):
-            raise ValueError('Viewport.world must be a World instance.')
-        self._world = world
-    
-    
-    @property
     def camera(self):
         if self._camera is None:
             cams = self.get_cameras()
@@ -262,7 +251,7 @@ class Viewport(Entity):
     
     @camera.setter
     def camera(self, value):
-        # todo: check whether given camera is in self.world
+        # todo: check whether given camera is in self._children
         self._camera = value
     
     
@@ -273,11 +262,13 @@ class Viewport(Entity):
             for entity in val:
                 if isinstance(entity, Camera):
                     cams.append(entity)
-                if isinstance(entity, Entity):  # if, not elif!
+                if isinstance(entity, Viewport):
+                    pass # Do not go into subscenes
+                elif isinstance(entity, Entity):  # if, not elif!
                     cams.extend(getcams(entity))
             return cams
         
-        return getcams(self.world)
+        return getcams(self)
     
     def process(self):
         self._engine.process(self)
@@ -323,8 +314,8 @@ from vispy import app, gloo
 gl = gloo.gl
 
 
-class Figure(app.Canvas):
-    """ The Figure class provides a region of screen that the root world
+class CanvasWithScene(app.Canvas):
+    """ The CanvasWithScene class provides a region of screen that the root scene
     can be rendered to. It has a Viewport instance for which the size
     is kept in sync with the underlying GL widget.
     """
@@ -332,12 +323,6 @@ class Figure(app.Canvas):
     def __init__(self, *args, **kwargs):
         app.Canvas.__init__(self, *args, **kwargs)
         self._viewport = Viewport()
-    
-    @property
-    def world(self):
-        """ The world object of the root viewport.
-        """
-        return self._viewport.world
     
     @property
     def viewport(self):
@@ -371,7 +356,7 @@ class Figure(app.Canvas):
 
 class System(object):
     """ A system is an object that does stuff to the Entities in the
-    world. There is one system for each task and systems can be added
+    scene. There is one system for each task and systems can be added
     dynamically (also custom ones) to perform specific tasks.
     
     A system typically operates on a specific subset of components of
@@ -390,7 +375,7 @@ class System(object):
         if result is None: result = ()
         elif not isinstance(result, tuple): result = (result,)
         # Iterate over entities
-        for entity in viewport.world:
+        for entity in viewport:
             self.process_entity(entity, *result)
     
     
@@ -462,7 +447,7 @@ class DrawingSystem(System):
 #                 _draw_visual(sub, transform)
 #         
 #         unittransform = np.eye(4)
-#         for visual in viewport.world:
+#         for visual in viewport:
 #             _draw_visual(visual, unittransform)
 
 

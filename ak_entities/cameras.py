@@ -64,7 +64,7 @@ class TwoDCamera(Camera):
         self.fov = self.fov[0], ry
         self.transform[-1,1] = y
     
-        
+    
     def get_projection(self, viewport):
         w, h = self.fov
         from vispy.util import transforms

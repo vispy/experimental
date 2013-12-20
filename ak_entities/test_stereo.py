@@ -13,7 +13,7 @@ from vispy import app
 from vispy.util import transforms
 
 
-class MyFigure(entities.Figure):
+class MyFigure(entities.CanvasWithScene):
     def on_mouse_move(self, event):
         cam0.on_mouse_move(event)
 #         cam2.on_mouse_move(event)
@@ -22,13 +22,13 @@ fig = MyFigure()#entities.Figure()
 fig.size = 800, 400
 fig.show()
 
-#camera = entities.NDCCamera(fig.world)
-camera = entities.PixelCamera(fig.world)
+#camera = entities.NDCCamera(fig.viewport)
+camera = entities.PixelCamera(fig.viewport)
 
-# Create two viewports, use the same world
-vp1 = entities.Viewport(fig.world)
-vp2 = entities.Viewport(fig.world)
-vp1.world = vp2.world
+# Create two viewports, use the same scene
+vp1 = entities.Viewport(fig.viewport)
+vp2 = entities.Viewport(fig.viewport)
+vp1.viewport = vp2.viewport
 
 # Put them next to each-other
 transforms.scale(vp1.transform, 400, 400)
@@ -37,7 +37,7 @@ transforms.translate(vp1.transform, 0)
 transforms.translate(vp2.transform, 400, 0, 0)
 
 # Create two cameras
-cam0 = entities.TwoDCamera(vp1.world)  # Placeholder camera
+cam0 = entities.TwoDCamera(vp1.viewport)  # Placeholder camera
 cam1 = entities.TwoDCamera(cam0)
 cam2 = entities.TwoDCamera(cam0)
 
@@ -57,7 +57,7 @@ vp1.bgcolor = (0,0,0.2)
 vp2.bgcolor = (0,0.2,0)
 
 # Create a entity
-points = entities.PointsEntity(vp1.world)
+points = entities.PointsEntity(vp1.viewport)
 
 app.run()
 
