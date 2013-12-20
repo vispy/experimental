@@ -48,12 +48,12 @@ class LogPointsVisual(entities.someentities.PointsVisual):
 
 
 # Create a figure
-fig = entities.Figure()
+fig = entities.CanvasWithScene()
 fig.size = 600, 600
 fig.show()
 
 # Create a camera
-camera = LogCamera(fig.world)#(self._viewport.world)
+camera = LogCamera(fig.viewbox)
 camera.xlim = -100, 500
 camera.ylim = -100, 500
 
@@ -62,5 +62,5 @@ x = np.linspace(0, 400, 1000)
 y = 2.0 ** x
 z = np.zeros_like(x)
 data = np.column_stack((x, y, z)).astype('float32')
-points = entities.PointsEntity(fig.world, data)
+points = entities.PointsEntity(fig.viewbox, data)
 points._visual = LogPointsVisual(data)

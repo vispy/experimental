@@ -17,11 +17,11 @@ class NDCCamera(Camera):
 
 class PixelCamera(Camera):
     """ Camera that presents a view on the world in pixel coordinates.
-    The coordinates map directly to the viewport coordinates. The origin
+    The coordinates map directly to the viewbox coordinates. The origin
     is in the upper left.
     """
-    def get_projection(self, viewport):
-        w, h = viewport.resolution
+    def get_projection(self, viewbox):
+        w, h = viewbox.resolution
         from vispy.util import transforms
         projection = np.eye(4)
         transforms.scale(projection, 2.0/w, 2.0/h)
@@ -65,7 +65,7 @@ class TwoDCamera(Camera):
         self.transform[-1,1] = y
     
     
-    def get_projection(self, viewport):
+    def get_projection(self, viewbox):
         w, h = self.fov
         from vispy.util import transforms
         projection = np.eye(4)
@@ -145,7 +145,7 @@ class ThreeDCamera(Camera):
             dpos = curpos[0] - startpos[0], curpos[1] - startpos[1] 
             
             # get normalized delta values
-            sze = 400, 400 # todo: get from viewport
+            sze = 400, 400 # todo: get from viewbox
             d_az = dpos[0] / sze[0]
             d_el = dpos[1] / sze[1]
             
@@ -194,9 +194,9 @@ class ThreeDCamera(Camera):
             self._transform = M
     
     
-    def get_projection(self, viewport):
+    def get_projection(self, viewbox):
         
-        w, h = viewport.resolution
+        w, h = viewbox.resolution
         
         fov = self._fov
         aspect = 1.0
@@ -256,9 +256,9 @@ class FirstPersonCamera(Camera):
         self._transform = M
     
     
-    def get_projection(self, viewport):
+    def get_projection(self, viewbox):
         
-        w, h = viewport.resolution
+        w, h = viewbox.resolution
         
         fov = self._fov
         aspect = 1.0

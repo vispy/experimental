@@ -1,6 +1,6 @@
 """ 
 Example that illustrates using multiple subplots.
-Also to test performance of the glViewport and Program enabling overhead.
+Also to test performance of the glViewBox and Program enabling overhead.
 
 On my 3 year old laptop, I find it takes 0.6 ms per subplot. Leading
 to 50 FPS on a 6x6 array of plots. Showing 36 plots with 10.000 points each
@@ -30,22 +30,22 @@ fig.show()
 
 # Add a simple normal pixelcamera. This camera looks at the many
 # subplots. Each subplot has its own world with a visual and a camera.
-entities.PixelCamera(fig.viewport)
+entities.PixelCamera(fig.viewbox)
 
 for col in range(NCOLS):
     for row in range(NROWS):
-        # Create viewport
-        viewport = entities.Viewport(fig.viewport)
-        viewport.transform[-1, 0] = col * RES / NCOLS
-        viewport.transform[-1, 1] = row * RES / NROWS
-        viewport.transform[0,0] = RES/NCOLS
-        viewport.transform[1,1] = RES/NROWS
-        # Create a camera in the viewport
-        camera = entities.TwoDCamera(viewport)
+        # Create viewbox
+        viewbox = entities.ViewBox(fig.viewbox)
+        viewbox.transform[-1, 0] = col * RES / NCOLS
+        viewbox.transform[-1, 1] = row * RES / NROWS
+        viewbox.transform[0,0] = RES/NCOLS
+        viewbox.transform[1,1] = RES/NROWS
+        # Create a camera in the viewbox
+        camera = entities.TwoDCamera(viewbox)
         camera.xlim = -100, 500
         camera.ylim = -100, 500
-        # Create a points visual in the viewport
-        points = entities.PointsEntity(viewport, 1000)
+        # Create a points visual in the viewbox
+        points = entities.PointsEntity(viewbox, 1000)
 
 
 # Count FPS

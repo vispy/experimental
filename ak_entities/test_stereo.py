@@ -1,8 +1,8 @@
 """ Test stereoscopic display.
 
 This example illustrates:
-  * Having two viewports that show the same scene
-  * Using a different camera for each viewport
+  * Having two viewboxes that show the same scene
+  * Using a different camera for each viewbox
   * Controlling both cameras simultaneously
   
 """
@@ -22,13 +22,13 @@ fig = MyFigure()#entities.Figure()
 fig.size = 800, 400
 fig.show()
 
-#camera = entities.NDCCamera(fig.viewport)
-camera = entities.PixelCamera(fig.viewport)
+#camera = entities.NDCCamera(fig.viewvbox)
+camera = entities.PixelCamera(fig.viewbox)
 
-# Create two viewports, use the same scene
-vp1 = entities.Viewport(fig.viewport)
-vp2 = entities.Viewport(fig.viewport)
-vp1.viewport = vp2.viewport
+# Create two viewbox, use the same scene
+vp1 = entities.ViewBox(fig.viewbox)
+vp2 = entities.ViewBox(fig.viewbox)
+vp1.viewport = vp2.viewbox
 
 # Put them next to each-other
 transforms.scale(vp1.transform, 400, 400)
@@ -37,7 +37,7 @@ transforms.translate(vp1.transform, 0)
 transforms.translate(vp2.transform, 400, 0, 0)
 
 # Create two cameras
-cam0 = entities.TwoDCamera(vp1.viewport)  # Placeholder camera
+cam0 = entities.TwoDCamera(vp1.viewbox)  # Placeholder camera
 cam1 = entities.TwoDCamera(cam0)
 cam2 = entities.TwoDCamera(cam0)
 
@@ -57,7 +57,7 @@ vp1.bgcolor = (0,0,0.2)
 vp2.bgcolor = (0,0.2,0)
 
 # Create a entity
-points = entities.PointsEntity(vp1.viewport)
+points = entities.PointsEntity(vp1.viewbox)
 
 app.run()
 

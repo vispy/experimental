@@ -141,7 +141,7 @@ class Camera(Entity):
         self._projection = np.eye(4)
     
     
-    def get_projection(self, viewport):
+    def get_projection(self, viewbox):
         return self._projection
 
     
@@ -169,9 +169,9 @@ class Camera(Entity):
         while True:
             object = object.parent
             if object is None:
-                break  # Root viewport
-            elif isinstance(object, Viewport):
-                break  # Go until the any parent viewport
+                break  # Root viewbox
+            elif isinstance(object, ViewBox):
+                break  # Go until the any parent ViewBox
             assert isinstance(object, Entity)
             if object.transform is not None:
                 camtransform[...] = np.dot(camtransform, object.transform)
@@ -188,21 +188,21 @@ class Camera(Entity):
 
 
 
-class Viewport(Entity):
-    """ The Viewport acts as the "portal" from one scene to another.
+class ViewBox(Entity):
+    """ The ViewBox acts as the "portal" from one scene to another.
     It is an Entity that exists in one scene, while exposing a view on
-    another. Note that there is always one toploevel Viewport that does
+    another. Note that there is always one toploevel ViewBox that does
     *not* live in a scene, but is attached to a canvas.
     
-    Each ViewPort also has a camera associated with it.
+    Each ViewBox also has a camera associated with it.
     """
     
     def __init__(self, parent=None):
         Entity.__init__(self, parent)
         
-        self._visual = ViewportVisual(self)
+        self._visual = ViewBoxVisual(self)
         
-        # Components of the viewport
+        # Components of the ViewBox
         self._bgcolor = (0.0, 0.0, 0.0, 1.0)
         
         self._engine = DrawingSystem()
@@ -232,7 +232,7 @@ class Viewport(Entity):
     @property
     def resolution(self):
         """ The number of pixels (in x and y) that are avalailable in
-        the viewport.
+        the ViewBox.
         
         Note: it would perhaps make sense to call this "size", because for
         the Figure, size and resolution are equal by definition. However,
@@ -262,7 +262,7 @@ class Viewport(Entity):
             for entity in val:
                 if isinstance(entity, Camera):
                     cams.append(entity)
-                if isinstance(entity, Viewport):
+                if isinstance(entity, ViewBox):
                     pass # Do not go into subscenes
                 elif isinstance(entity, Entity):  # if, not elif!
                     cams.extend(getcams(entity))
@@ -277,36 +277,36 @@ class Viewport(Entity):
 
 
 
-class ViewportVisual:
-    """ the thing that draws a viewport.
+class ViewBoxVisual:
+    """ the thing that draws a viewbox.
     """
-    def __init__(self, vieport):
-        self._viewport = vieport
+    def __init__(self, viewbox):
+        self._viewbox = viewbox
         self.program = None
     
     
     def draw(self):
-        M = self._viewport.transform
+        M = self._viewbox.transform
         w, h = int(M[0,0]), int(M[1,1])
         x, y = int(M[-1,0]), int(M[-1,1])
         
         need_FBO = False
         need_FBO |= bool( M[0,1] or M[0,2] or M[1,0] or M[1,2] or M[2,0] or M[2,1] )
-        need_FBO |= (w,h) != self._viewport.resolution
+        need_FBO |= (w,h) != self._viewbox.resolution
         
         if need_FBO:
-            # todo: we cannot use a viewport or scissors, but need an FBO
-            raise NotImplementedError('Need FBO to draw this viewport')
+            # todo: we cannot use a viewbox or scissors, but need an FBO
+            raise NotImplementedError('Need FBO to draw this viewbox')
         else:
-            # nice rectangle, we can use viewport and scissors
+            # nice rectangle, we can use viewbox and scissors
             gl.glViewport(x, y, w, h)
             gl.glScissor(x, y, w, h)
             gl.glEnable(gl.GL_SCISSOR_TEST)
             # Draw bgcolor
-            gl.glClearColor(*self._viewport.bgcolor)
+            gl.glClearColor(*self._viewbox.bgcolor)
             gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
             
-        self._viewport._engine.process(self._viewport)
+        self._viewbox._engine.process(self._viewbox)
 
 
 from vispy import app
@@ -316,23 +316,23 @@ gl = gloo.gl
 
 class CanvasWithScene(app.Canvas):
     """ The CanvasWithScene class provides a region of screen that the root scene
-    can be rendered to. It has a Viewport instance for which the size
+    can be rendered to. It has a ViewBox instance for which the size
     is kept in sync with the underlying GL widget.
     """
     
     def __init__(self, *args, **kwargs):
         app.Canvas.__init__(self, *args, **kwargs)
-        self._viewport = Viewport()
+        self._viewbox = ViewBox()
     
     @property
-    def viewport(self):
-        """ The root viewport object for this canvas.
+    def viewbox(self):
+        """ The root viewbox object for this canvas.
         """
-        return self._viewport
+        return self._viewbox
     
     def on_resize(self, event):
-        self._viewport.transform[0,0] = event.size[0]
-        self._viewport.transform[1,1] = event.size[1]
+        self._viewbox.transform[0,0] = event.size[0]
+        self._viewbox.transform[1,1] = event.size[1]
     
     def on_initialize(self, event):
         # todo: this must be done in the engine ...
@@ -344,13 +344,13 @@ class CanvasWithScene(app.Canvas):
         gl.glClearColor(0,0,0,1);
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         
-        # Draw viewport
-        self._viewport.visual.draw()
-        self._viewport.process()
+        # Draw viewbox
+        self._viewbox.visual.draw()
+        self._viewbox.process()
     
     def on_mouse_move(self, event):
         # todo: we need a proper way to deal with events
-        self._viewport.camera.on_mouse_move(event)
+        self._viewbox.camera.on_mouse_move(event)
 
 
 
@@ -367,15 +367,15 @@ class System(object):
         pass
     
     
-    def process(self, viewport):
-        if not isinstance(viewport, Viewport):
-            raise ValueError('DrawingSystem.draw expects a Viewport instance.')
+    def process(self, viewbox):
+        if not isinstance(viewbox, ViewBox):
+            raise ValueError('DrawingSystem.draw expects a ViewBox instance.')
         # Init and turn result into a tuple if necessary
-        result = self._process_init(viewport)
+        result = self._process_init(viewbox)
         if result is None: result = ()
         elif not isinstance(result, tuple): result = (result,)
         # Iterate over entities
-        for entity in viewport:
+        for entity in viewbox:
             self.process_entity(entity, *result)
     
     
@@ -389,7 +389,7 @@ class System(object):
             self.process_entity(sub_entity, *result)
     
     
-    def _process_init(self, viewport):
+    def _process_init(self, viewbox):
         return ()
     
     def _process_entity(self, entity, *args):
@@ -402,9 +402,9 @@ class DrawingSystem(System):
     """ Simple implementation of a drawing engine.
     """
     
-    def _process_init(self, viewport):
-        self._camtransform = viewport.camera.get_camera_transform()
-        self._projection = viewport.camera.get_projection(viewport)
+    def _process_init(self, viewbox):
+        self._camtransform = viewbox.camera.get_camera_transform()
+        self._projection = viewbox.camera.get_projection(viewbox)
         return np.eye(4)
     
     
@@ -423,32 +423,6 @@ class DrawingSystem(System):
                 entity.visual.program.set_vars(entity._shaderTransforms)
             entity.visual.draw()
         return transform
-    
-    
-#     def draw(self, viewport):
-#         if not isinstance(viewport, BaseViewport):
-#             raise ValueError('DrawingSystem.draw expects a Viewport instance.')
-#         
-#         camtransform = viewport.camera.get_camera_transform()
-#         projection = viewport.camera.get_projection(viewport)
-#         
-#         def _draw_visual(visual, transform):
-#             # Set transformation
-#             if visual.transform is not None:
-#                 transform = np.dot(transform, visual.transform)
-#             # Store all components of the transform
-#             visual._shaderTransforms['transform_model'] = transform
-#             visual._shaderTransforms['transform_view'] = camtransform
-#             visual._shaderTransforms['transform_projection'] = projection
-#             # Draw
-#             visual.draw()
-#             # Process children
-#             for sub in visual:
-#                 _draw_visual(sub, transform)
-#         
-#         unittransform = np.eye(4)
-#         for visual in viewport:
-#             _draw_visual(visual, unittransform)
 
 
 class EventSystem:

@@ -16,15 +16,15 @@ fig.show()
 
 # Create a camera inside a container
 camcontainer = entities.PixelCamera()
-camera = entities.ThreeDCamera(camcontainer)#(self._viewport.world)
+camera = entities.ThreeDCamera(camcontainer)
 camera._fov = 90  # or other between 0 and 179
 
 
-# Explicitly set the second camera, or the Viewport will pick the second
-fig.viewport.camera = camera
+# Explicitly set the second camera, or the ViewBox will pick the second
+fig.viewbox.camera = camera
 
 # Create a points entity inside a container
-pointscontainer = entities.Entity(fig.viewport)
+pointscontainer = entities.Entity(fig.viewbox)
 points = entities.PointsEntity(pointscontainer, 1000)
 
 
