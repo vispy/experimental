@@ -15,7 +15,7 @@ fig.size = 600, 600
 fig.show()
 
 # Create a camera inside a container
-camcontainer = entities.PixelCamera()
+camcontainer = entities.PixelCamera(fig.viewbox)
 camera = entities.ThreeDCamera(camcontainer)
 camera._fov = 90  # or other between 0 and 179
 

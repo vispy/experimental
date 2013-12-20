@@ -1,6 +1,43 @@
 """
-This module implements the core classed of the vispy scenegraph. The
+This module implements the core classes for the vispy scenegraph. The
 scenegraph is a graph of which the nodes are made up of Entity objects.
+
+Some definitions:
+
+* Scene graph: a weakly connected directed acyclic graph. There is
+  typically one root node, but there can be multiple roots in some
+  situations. The graph represents the hierarchy of transformations.
+  
+* Entity: a node in the scene graph, a "thing" inside the scene. Most
+  entities are visible. Each entity has its own coordinate system. The
+  transform attribute defines how its coordinate system is transformed
+  from the coordinate system of the parent.
+
+* ViewBox: An Entity whose purposes are to: 1) provide a rectangular
+  region to render the scene within the viewbox to; 2) provide a
+  user-definable transformation for rendering the scene within the
+  viewbox (via a camera entity that is inside the viewbox itself); 3)
+  provide clipping when rendering. --- The "scene within the viewbox"
+  is simply the list of its children. As such, the total scenegraph is
+  a complete graph without interruptions (i.e. contiguous). The way
+  that a viewBox renders its scene may depend on the situations. The
+  easiest would be to use glViewport and glScissor. Other options are
+  to use an FBO, or chaining the scenes transformation with the viewbox'
+  own transformations and then using fragment-clipping or a stencil
+  buffer.
+
+* Scene: The part of the scenegraph that is within a ViewBox. Any ViewBox
+  is itself part of a scene (except the root ViewBox). The children of a
+  ViewBox make up its "sub-scene". The "total scene" would be analogous
+  to the whole scene graph.
+
+* Camera: An entity in a scene that defines the viewpoint (by its position
+  and orientation) and the projection (e.g. field of view, perspective, log, 
+  polar, ...) with which the scene is projected onto the rectangular region
+  of the viewbox.
+
+* Visual: A component of an entity that specifies how that entity is drawn.
+  A visual is passive and agnostic about the scene graph.
 
 """
 
@@ -115,10 +152,17 @@ class Entity(object):
     
     @property
     def transform(self):
+        """ The transform for this entity; how the local coordinate system
+        is transformed with respect to the parent coordinate syste.
+        Right now, this is simply a 4x4 matrix.
+        """
         return self._transform
+    
     
     @property
     def visual(self):
+        """ The visual object that can draw this entity. Can be None.
+        """
         return self._visual
     
 
@@ -138,10 +182,14 @@ class Camera(Entity):
         Entity.__init__(self, parent)
         
         # Can be orthograpic, perspective, log, polar, map, etc.
+        # Default unit
         self._projection = np.eye(4)
     
     
     def get_projection(self, viewbox):
+        """ Get the projection matrix. Should be overloaded by camera
+        classes to define the projection of view.
+        """
         return self._projection
 
     
@@ -151,12 +199,10 @@ class Camera(Entity):
     def on_mouse_move(self, event):
         pass
     
-    def draw(sef):
-        pass
-    
     def get_camera_transform(self):
-        """ The the transformation matrix of the camera to the scene
+        """ Calculate the transformation matrix of the camera to the scene
         (i.e. the transformation is already inverted).
+        This is used by the drawing system to establish the view matrix.
         """
         # note: perhaps a camera should have a transform that can only 
         # translate and rotate... on the other hand, a parent entity
@@ -189,29 +235,37 @@ class Camera(Entity):
 
 
 class ViewBox(Entity):
-    """ The ViewBox acts as the "portal" from one scene to another.
-    It is an Entity that exists in one scene, while exposing a view on
-    another. Note that there is always one toploevel ViewBox that does
-    *not* live in a scene, but is attached to a canvas.
+    """ The ViewBox acts as the "portal" from one scene to another. It
+    is an Entity that exists in one scene, while exposing a view on
+    another. Note that there is always at least one toploevel ViewBox
+    that does not* live in a scene, but is attached to a canvas.
     
-    Each ViewBox also has a camera associated with it.
+    The purpose of a viewbox is to: 1) provide a rectangular region to
+    render the scene within the viewbox to; 2) provide a user-definable
+    transformation for rendering the scene within the viewbox (via a
+    camera entity that is inside the viewbox itself); 3) provide
+    clipping when rendering.
+    
     """
     
     def __init__(self, parent=None):
         Entity.__init__(self, parent)
         
-        self._visual = ViewBoxVisual(self)
-        
         # Components of the ViewBox
         self._bgcolor = (0.0, 0.0, 0.0, 1.0)
-        
-        self._engine = DrawingSystem()
         self._camera = None
+        
+        # Initialize systems
+        self._systems = {}
+        self._systems['draw'] = DrawingSystem()
     
     
     @property
     def bgcolor(self):
+        """ The background color of the scene. within the viewbox.
+        """
         return self._bgcolor
+    
     
     @bgcolor.setter
     def bgcolor(self, value):
@@ -234,15 +288,19 @@ class ViewBox(Entity):
         """ The number of pixels (in x and y) that are avalailable in
         the ViewBox.
         
-        Note: it would perhaps make sense to call this "size", because for
-        the Figure, size and resolution are equal by definition. However,
-        perhaps we want to give entities a "size" property later.
+        Note: it would perhaps make sense to call this "size", because
+        for the CanvasWithScene, size and resolution are equal by
+        definition. However, perhaps we want to give entities a "size"
+        property later.
         """
         return int(self.transform[0,0]), int(self.transform[1,1])
     
     
     @property
     def camera(self):
+        """ The camera associated with this viewbox. Can be None if there
+        are no cameras in the scene.
+        """
         if self._camera is None:
             cams = self.get_cameras()
             if cams:
@@ -251,12 +309,14 @@ class ViewBox(Entity):
     
     @camera.setter
     def camera(self, value):
-        # todo: check whether given camera is in self._children
+        if value not in self.get_cameras():
+            raise ValueError('Given camera is not in the scene of the ViewBox.')
         self._camera = value
     
     
     def get_cameras(self):
-        
+        """ Get a list of all cameras that live in this scene.
+        """
         def getcams(val):
             cams = []
             for entity in val:
@@ -270,54 +330,31 @@ class ViewBox(Entity):
         
         return getcams(self)
     
-    def process(self):
-        self._engine.process(self)
-        #self._eventSystem.process(self)
-        # etc. ...
-
-
-
-class ViewBoxVisual:
-    """ the thing that draws a viewbox.
-    """
-    def __init__(self, viewbox):
-        self._viewbox = viewbox
-        self.program = None
     
-    
-    def draw(self):
-        M = self._viewbox.transform
-        w, h = int(M[0,0]), int(M[1,1])
-        x, y = int(M[-1,0]), int(M[-1,1])
-        
-        need_FBO = False
-        need_FBO |= bool( M[0,1] or M[0,2] or M[1,0] or M[1,2] or M[2,0] or M[2,1] )
-        need_FBO |= (w,h) != self._viewbox.resolution
-        
-        if need_FBO:
-            # todo: we cannot use a viewbox or scissors, but need an FBO
-            raise NotImplementedError('Need FBO to draw this viewbox')
+    def process(self, *system_names):
+        """ Process all systems.
+        """
+        if not system_names:
+            # Process all
+            for system in self._systems.values():
+                system.process(self)
         else:
-            # nice rectangle, we can use viewbox and scissors
-            gl.glViewport(x, y, w, h)
-            gl.glScissor(x, y, w, h)
-            gl.glEnable(gl.GL_SCISSOR_TEST)
-            # Draw bgcolor
-            gl.glClearColor(*self._viewbox.bgcolor)
-            gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
-            
-        self._viewbox._engine.process(self._viewbox)
+            # Process selection
+            for system_name in system_names:
+                self._systems[system_name].process(self)
 
 
+
+# Imports for the Canvas subclass
 from vispy import app
 from vispy import app, gloo
 gl = gloo.gl
 
 
 class CanvasWithScene(app.Canvas):
-    """ The CanvasWithScene class provides a region of screen that the root scene
-    can be rendered to. It has a ViewBox instance for which the size
-    is kept in sync with the underlying GL widget.
+    """ The CanvasWithScene class provides a window or widget that the
+    root scene can be rendered to. It has a ViewBox instance for which
+    the size is kept in sync with the underlying GL widget.
     """
     
     def __init__(self, *args, **kwargs):
@@ -330,22 +367,24 @@ class CanvasWithScene(app.Canvas):
         """
         return self._viewbox
     
-    def on_resize(self, event):
-        self._viewbox.transform[0,0] = event.size[0]
-        self._viewbox.transform[1,1] = event.size[1]
-    
     def on_initialize(self, event):
-        # todo: this must be done in the engine ...
+        # Initialize opengl
         gl.glClearColor(0,0,0,1);
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE)
     
+    def on_resize(self, event):
+        self._viewbox.transform[0,0] = event.size[0]
+        self._viewbox.transform[1,1] = event.size[1]
+    
     def on_paint(self, event):
         gl.glClearColor(0,0,0,1);
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
+        #print('painting ...')
         
         # Draw viewbox
-        self._viewbox.visual.draw()
+        #self._viewbox.visual.draw()
+        #self._viewbox.process()
         self._viewbox.process()
     
     def on_mouse_move(self, event):
@@ -368,6 +407,8 @@ class System(object):
     
     
     def process(self, viewbox):
+        """ Process the given viewbox.
+        """
         if not isinstance(viewbox, ViewBox):
             raise ValueError('DrawingSystem.draw expects a ViewBox instance.')
         # Init and turn result into a tuple if necessary
@@ -380,6 +421,9 @@ class System(object):
     
     
     def process_entity(self, entity, *args):
+        """ Process the given entity.
+        """
+        #print('process', entity)
         # Process and turn result into a tuple if necessary
         result = self._process_entity(entity, *args)
         if result is None: result = ()
@@ -390,9 +434,14 @@ class System(object):
     
     
     def _process_init(self, viewbox):
+        """ Called before the system starts processing. Overload this.
+        """ 
         return ()
     
     def _process_entity(self, entity, *args):
+        """ Called to process an entity. args is what was returned
+        from processing the parent. Overload this.
+        """
         return ()
     
 
@@ -403,8 +452,13 @@ class DrawingSystem(System):
     """
     
     def _process_init(self, viewbox):
+        # Camera transform and projection are the same for the
+        # entire scene
         self._camtransform = viewbox.camera.get_camera_transform()
         self._projection = viewbox.camera.get_projection(viewbox)
+        # Prepare the viewbox (e.g. set up glViewport)
+        self._prepare_viewbox(viewbox)
+        # Return unit transform
         return np.eye(4)
     
     
@@ -422,11 +476,41 @@ class DrawingSystem(System):
             if entity.visual.program is not None:
                 entity.visual.program.set_vars(entity._shaderTransforms)
             entity.visual.draw()
+        # If a viewbox, render the subscene. 
+        if isinstance(entity, ViewBox):
+            entity.process('draw')
+        # Return new transform
         return transform
+    
+    
+    def _prepare_viewbox(self, viewbox):
+        # print('preparing viewbox', viewbox )
+        M = viewbox.transform
+        w, h = int(M[0,0]), int(M[1,1])
+        x, y = int(M[-1,0]), int(M[-1,1])
+        
+        need_FBO = False
+        need_FBO |= bool( M[0,1] or M[0,2] or M[1,0] or M[1,2] or M[2,0] or M[2,1] )
+        need_FBO |= (w,h) != viewbox.resolution
+        
+        # todo: take parent viewboxes into account.
+        
+        if need_FBO:
+            # todo: we cannot use a viewbox or scissors, but need an FBO
+            raise NotImplementedError('Need FBO to draw this viewbox')
+        else:
+            # nice rectangle, we can use viewbox and scissors
+            gl.glViewport(x, y, w, h)
+            gl.glScissor(x, y, w, h)
+            gl.glEnable(gl.GL_SCISSOR_TEST)
+            # Draw bgcolor
+            gl.glClearColor(*viewbox.bgcolor)
+            gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
 
 class EventSystem:
     pass
+
 
 class SomeOtherSystem:
     pass
