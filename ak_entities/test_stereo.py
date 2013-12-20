@@ -18,17 +18,16 @@ class MyFigure(entities.CanvasWithScene):
         cam0.on_mouse_move(event)
 #         cam2.on_mouse_move(event)
 
+# Create figure with one pixel camera
 fig = MyFigure()#entities.Figure()
 fig.size = 800, 400
 fig.show()
-
 #camera = entities.NDCCamera(fig.viewvbox)
 camera = entities.PixelCamera(fig.viewbox)
 
 # Create two viewbox, use the same scene
 vp1 = entities.ViewBox(fig.viewbox)
 vp2 = entities.ViewBox(fig.viewbox)
-vp1.viewport = vp2.viewbox
 
 # Put them next to each-other
 transforms.scale(vp1.transform, 400, 400)
@@ -36,8 +35,13 @@ transforms.scale(vp2.transform, 400, 400)
 transforms.translate(vp1.transform, 0)
 transforms.translate(vp2.transform, 400, 0, 0)
 
+# Create a world object to act as a container
+# It is a child of both viewports
+world = entities.Entity()
+world.parents = vp1, vp2
+
 # Create two cameras
-cam0 = entities.TwoDCamera(vp1.viewbox)  # Placeholder camera
+cam0 = entities.TwoDCamera(world)  # Placeholder camera
 cam1 = entities.TwoDCamera(cam0)
 cam2 = entities.TwoDCamera(cam0)
 
@@ -57,7 +61,6 @@ vp1.bgcolor = (0,0,0.2)
 vp2.bgcolor = (0,0.2,0)
 
 # Create a entity
-points = entities.PointsEntity(vp1.viewbox)
+points = entities.PointsEntity(world)
 
 app.run()
-
