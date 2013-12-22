@@ -2,7 +2,7 @@
 Example that illustrates using multiple subplots.
 Also to test performance of the glViewBox and Program enabling overhead.
 
-On my 3 year old laptop, I find it takes 0.6 ms per subplot. Leading
+On my 3 year old laptop, I find it takes 0.6/0.8 ms per subplot. Leading
 to 50 FPS on a 6x6 array of plots. Showing 36 plots with 10.000 points each
 runs at 30 FPS. For comparison, a single plot with 360.000 points runs
 at the same frame rate. 
@@ -20,8 +20,8 @@ from vispy import app
 from vispy.util import transforms
 
 RES = 600
-NCOLS = 5
-NROWS = 5
+NCOLS = 12
+NROWS = 12
 
 # Create a figure
 fig = entities.CanvasWithScene()
@@ -45,7 +45,7 @@ for col in range(NCOLS):
         camera.xlim = -100, 500
         camera.ylim = -100, 500
         # Create a points visual in the viewbox
-        points = entities.PointsEntity(viewbox, 1000)
+        points = entities.PointsEntity(viewbox, 100)
 
 
 # Count FPS
@@ -70,7 +70,8 @@ if False:
     ## Evaluate measurements 
     # Measured
     ncolrow = [6,  7,   8,  9, 10, 11, 12]
-    fpss    = [48, 37, 28, 23, 18, 15, 12]
+    fpss    = [48, 37, 28, 23, 18, 15, 12]  # Measured earlier
+    fpss    = [32, 24, 19, 15, 12, 10, 8]   # Measured later, probably added extra overhead
     # Process
     xx = [x**2 for x in ncolrow]
     yy = [1.0 / fps for fps in fpss]

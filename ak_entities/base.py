@@ -56,7 +56,9 @@ class Entity(object):
     It is recommended to use multi-parenting with care.
     """
     
-    def __init__(self, parent=None):
+    Visual = None
+    
+    def __init__(self, parent=None, **kwargs):
         
         # Entities are organized in a parent-children hierarchy
         self._children = []
@@ -66,10 +68,8 @@ class Entity(object):
         
         # Components that all entities in vispy have
         self._transform = np.eye(4)
-        self._visual = None
-        
-        # variables where temporary transforms are written by engine
-        self._shaderTransforms = {} # todo: where to store this, or not store at all?
+        self._visuals = {}
+        self._visual_kwargs = kwargs
     
     
     @property
@@ -159,12 +159,21 @@ class Entity(object):
         return self._transform
     
     
-    @property
-    def visual(self):
-        """ The visual object that can draw this entity. Can be None.
-        """
-        return self._visual
+#     @property
+#     def visual(self):
+#         """ The visual object that can draw this entity. Can be None.
+#         """
+#         return self._visual
     
+    
+    def get_visual(self, root):
+        if self.Visual is None:
+            return None
+        try:
+            visual = self._visuals[id(root)]
+        except KeyError:
+            visual = self._visuals[id(root)] = self.Visual(**self._visual_kwargs)
+        return visual
 
 
 
@@ -230,6 +239,8 @@ class Camera(Entity):
         # of normalizing the homography matrix for scale.
         
         # Return inverse!
+        # todo: I don't like depending on np on this ...
+        # glsl can do this for us too. Or is 4x4 matrix inversion easy?
         return np.linalg.inv(camtransform)
 
 
@@ -331,17 +342,17 @@ class ViewBox(Entity):
         return getcams(self)
     
     
-    def process(self, *system_names):
+    def process(self, root, *system_names):
         """ Process all systems.
         """
         if not system_names:
             # Process all
             for system in self._systems.values():
-                system.process(self)
+                system.process(self, root)
         else:
             # Process selection
             for system_name in system_names:
-                self._systems[system_name].process(self)
+                self._systems[system_name].process(self, root)
 
 
 
@@ -383,9 +394,7 @@ class CanvasWithScene(app.Canvas):
         #print('painting ...')
         
         # Draw viewbox
-        #self._viewbox.visual.draw()
-        #self._viewbox.process()
-        self._viewbox.process()
+        self._viewbox.process(self, 'draw')
     
     def on_mouse_move(self, event):
         # todo: we need a proper way to deal with events
@@ -406,13 +415,13 @@ class System(object):
         pass
     
     
-    def process(self, viewbox):
+    def process(self, viewbox, root):
         """ Process the given viewbox.
         """
         if not isinstance(viewbox, ViewBox):
             raise ValueError('DrawingSystem.draw expects a ViewBox instance.')
         # Init and turn result into a tuple if necessary
-        result = self._process_init(viewbox)
+        result = self._process_init(viewbox, root)
         if result is None: result = ()
         elif not isinstance(result, tuple): result = (result,)
         # Iterate over entities
@@ -430,10 +439,11 @@ class System(object):
         elif not isinstance(result, tuple): result = (result,)
         # Iterate over sub entities
         for sub_entity in entity:
+            sub_entity._parent = entity  # as promised in the docs of .parent
             self.process_entity(sub_entity, *result)
     
     
-    def _process_init(self, viewbox):
+    def _process_init(self, viewbox, root):
         """ Called before the system starts processing. Overload this.
         """ 
         return ()
@@ -451,13 +461,15 @@ class DrawingSystem(System):
     """ Simple implementation of a drawing engine.
     """
     
-    def _process_init(self, viewbox):
+    def _process_init(self, viewbox, root):
         # Camera transform and projection are the same for the
         # entire scene
         self._camtransform = viewbox.camera.get_camera_transform()
         self._projection = viewbox.camera.get_projection(viewbox)
         # Prepare the viewbox (e.g. set up glViewport)
         self._prepare_viewbox(viewbox)
+        # Store viewbox and root
+        self._viewbox, self._root = viewbox, root
         # Return unit transform
         return np.eye(4)
     
@@ -468,17 +480,19 @@ class DrawingSystem(System):
         if entity.transform is not None:
             transform = np.dot(transform, entity.transform)
         # Store all components of the transform
-        entity._shaderTransforms['transform_model'] = transform
-        entity._shaderTransforms['transform_view'] = self._camtransform
-        entity._shaderTransforms['transform_projection'] = self._projection
+        shaderTransforms = {}
+        shaderTransforms['transform_model'] = transform
+        shaderTransforms['transform_view'] = self._camtransform
+        shaderTransforms['transform_projection'] = self._projection
         # Draw
-        if entity.visual is not None:
-            if entity.visual.program is not None:
-                entity.visual.program.set_vars(entity._shaderTransforms)
-            entity.visual.draw()
+        visual = entity.get_visual(self._root)
+        if visual is not None:
+            if visual.program is not None:
+                visual.program.set_vars(shaderTransforms)
+            visual.draw()
         # If a viewbox, render the subscene. 
         if isinstance(entity, ViewBox):
-            entity.process('draw')
+            entity.process(self._root, 'draw')
         # Return new transform
         return transform
     

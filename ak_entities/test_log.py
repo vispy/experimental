@@ -46,6 +46,9 @@ class LogPointsVisual(entities.someentities.PointsVisual):
         }
     """
 
+class LogPointsEntity(entities.someentities.PointsEntity):
+    Visual = LogPointsVisual
+
 
 # Create a figure
 fig = entities.CanvasWithScene()
@@ -62,5 +65,4 @@ x = np.linspace(0, 400, 1000)
 y = 2.0 ** x
 z = np.zeros_like(x)
 data = np.column_stack((x, y, z)).astype('float32')
-points = entities.PointsEntity(fig.viewbox, data)
-points._visual = LogPointsVisual(data)
+points = LogPointsEntity(fig.viewbox, data)

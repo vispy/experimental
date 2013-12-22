@@ -62,6 +62,7 @@ class PointsVisual(object):
         
 
 class PointsEntity(Entity):
-    def __init__(self, parent, *args):
-        Entity.__init__(self, parent)
-        self._visual = PointsVisual(*args)
+    Visual = PointsVisual
+    def __init__(self, parent=None, N=1000):
+        Entity.__init__(self, parent, N=N)
+
