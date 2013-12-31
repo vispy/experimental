@@ -167,6 +167,9 @@ class Entity(object):
     
     
     def get_visual(self, root):
+        """ Get the visual for this entity, based on the given root.
+        May be overloaded to enable the use of multiple visuals.
+        """
         if self.Visual is None:
             return None
         try:
@@ -256,6 +259,9 @@ class ViewBox(Entity):
     transformation for rendering the scene within the viewbox (via a
     camera entity that is inside the viewbox itself); 3) provide
     clipping when rendering.
+    
+    Each ViewBox has its own set of systems that operate on the ViewBox' 
+    subscene.
     
     """
     
