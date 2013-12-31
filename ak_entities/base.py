@@ -394,7 +394,9 @@ class CanvasWithScene(app.Canvas):
         #print('painting ...')
         
         # Draw viewbox
+        self._process_entity_count = 0
         self._viewbox.process(self, 'draw')
+        #print(self._process_entity_count)
     
     def on_mouse_move(self, event):
         # todo: we need a proper way to deal with events
@@ -432,6 +434,7 @@ class System(object):
     def process_entity(self, entity, *args):
         """ Process the given entity.
         """
+        self._root._process_entity_count += 1
         #print('process', entity)
         # Process and turn result into a tuple if necessary
         result = self._process_entity(entity, *args)
