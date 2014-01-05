@@ -9,6 +9,7 @@ from vispy_experimental import ak_entities as entities
 from vispy import app
 from vispy.util import transforms
 
+
 # Create a figure
 fig = entities.CanvasWithScene()
 fig.size = 600, 600

@@ -167,6 +167,9 @@ class Entity(object):
     
     
     def get_visual(self, root):
+        """ Get the visual for this entity, based on the given root.
+        May be overloaded to enable the use of multiple visuals.
+        """
         if self.Visual is None:
             return None
         try:
@@ -256,6 +259,9 @@ class ViewBox(Entity):
     transformation for rendering the scene within the viewbox (via a
     camera entity that is inside the viewbox itself); 3) provide
     clipping when rendering.
+    
+    Each ViewBox has its own set of systems that operate on the ViewBox' 
+    subscene.
     
     """
     
@@ -394,7 +400,9 @@ class CanvasWithScene(app.Canvas):
         #print('painting ...')
         
         # Draw viewbox
+        self._process_entity_count = 0
         self._viewbox.process(self, 'draw')
+        #print(self._process_entity_count)
     
     def on_mouse_move(self, event):
         # todo: we need a proper way to deal with events
@@ -432,6 +440,7 @@ class System(object):
     def process_entity(self, entity, *args):
         """ Process the given entity.
         """
+        self._root._process_entity_count += 1
         #print('process', entity)
         # Process and turn result into a tuple if necessary
         result = self._process_entity(entity, *args)

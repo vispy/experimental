@@ -20,8 +20,8 @@ from vispy import app
 from vispy.util import transforms
 
 RES = 600
-NCOLS = 12
-NROWS = 12
+NCOLS = 6
+NROWS = 6
 
 # Create a figure
 fig = entities.CanvasWithScene()
