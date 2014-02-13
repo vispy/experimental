@@ -10,9 +10,6 @@ from debug import log
 from globject import GLObject
 
 
-# WARNING: If we have a view on a base buffer and if this buffer is resized, we
-#          need to invalidate the view
-
 # ------------------------------------------------------------ Buffer class ---
 class Buffer(GLObject):
     """
@@ -49,6 +46,8 @@ class Buffer(GLObject):
         GLObject.__init__(self)
         self._need_resize = True
         self._resizeable = resizeable
+        self._views = []
+        self._valid = True
 
         # Store and check target
         if target not in (gl.GL_ARRAY_BUFFER, gl.GL_ELEMENT_ARRAY_BUFFER):
@@ -108,6 +107,11 @@ class Buffer(GLObject):
             else:
                 self._nbytes = nbytes
                 self._need_resize = True
+                # Invalidate any view on this buffer
+                for view in self._views:
+                    view._valid = False
+                self._views = []
+
         elif (offset+nbytes) > self._nbytes:
             raise ValueError("Data does not fit into buffer")
 
@@ -220,6 +224,7 @@ class DataBuffer(Buffer):
         self._copy = copy
         self._size = size
 
+
         # This buffer is a view on another
         if base is not None:
             self._dtype =  base.dtype
@@ -304,6 +309,7 @@ class DataBuffer(Buffer):
             GLObject.deactivate(self)
 
 
+
     def update(self):
         """ Update the object in GPU """
 
@@ -385,6 +391,45 @@ class DataBuffer(Buffer):
         return self._itemsize
 
 
+    def resize(self, size):
+        """ Resize the buffer (in-place, deferred operation)
+
+        Parameters
+        ----------
+
+        size : integer
+            New buffer size
+
+        Note
+        ----
+
+        This clears any pending operations.
+        """
+
+        if not self._resizeable:
+            raise RuntimeError("Buffer is not resizeable")
+
+        if self._base is not None:
+            raise RuntimeError("Buffer view is not resizeable")
+
+        if size == self.size:
+            return
+
+        # Invalidate any view on this texture
+        for view in self._views:
+            view._valid = False
+        self._views = []
+
+        self._pending_data = []
+        self._need_update = False
+        self._need_resize = True
+        self._size = size
+        if self._data is not None and self._store:
+            self._data = np.resize(self._data, self._size)
+        else:
+            self._data = None
+
+
     def __getitem__(self, key):
         """ Create a view on this buffer. """
 
@@ -400,8 +445,8 @@ class DataBuffer(Buffer):
                                size = self.size, offset=offset)
             V._nbytes = self.size*dtype.itemsize
             V._itemsize = dtype.itemsize
-
             V._key = key
+            self._views.append(V)
             return V
 
         if isinstance(key, int):
@@ -432,11 +477,15 @@ class DataBuffer(Buffer):
                                dtype=self.dtype, size=stop-start,
                                offset = start*self.itemsize, resizeable=False)
         V._key = key
+        self._views.append(V)
         return V
 
 
     def __setitem__(self, key, data):
         """ Set data (deferred operation) """
+
+        if self.base is not None and not self._valid:
+            raise ValueError("This texture view has been invalited")
 
         # Setting a whole field of the buffer: only allowed if we have CPU
         # storage. Note this case (key is str) only happen with base buffer

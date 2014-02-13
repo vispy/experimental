@@ -158,6 +158,7 @@ class TextureTest(unittest.TestCase):
         T = Texture(data=data)
         T.resize((5,5))
         assert T.shape == (5,5)
+        assert T._data.shape == (5,5)
         assert T._need_resize == True
         assert T._need_update == False
         assert len(T._pending_data) == 0
@@ -281,7 +282,7 @@ class TextureTest(unittest.TestCase):
         assert len(T._pending_data) == 1
         assert np.allclose(data,np.zeros((10,10)))
 
-    # Set a single data 
+    # Set a single data
     # ---------------------------------
     def test_setitem_single(self):
 
@@ -291,7 +292,7 @@ class TextureTest(unittest.TestCase):
         assert len(T._pending_data) == 2
         assert data[0,0] == 1,1
 
-    # Set some data 
+    # Set some data
     # ---------------------------------
     def test_setitem_partial(self):
 
@@ -301,7 +302,7 @@ class TextureTest(unittest.TestCase):
         assert len(T._pending_data) == 2
         assert np.allclose(data[5:,5:], np.ones((5,5)))
 
-    # Set wrong data 
+    # Set wrong data
     # ---------------------------------
     def test_setitem_wrong(self):
 
@@ -321,6 +322,15 @@ class TextureTest(unittest.TestCase):
         assert len(Z._pending_data) == 0
         assert len(T._pending_data) == 2
         assert np.allclose(data[5:,5:], np.ones((5,5)))
+
+    # Test view get invalidated when base is resized
+    # ----------------------------------------------
+    def test_invalid_views(self):
+        data = np.zeros((10,10), dtype=np.uint8)
+        T = Texture(data=data)
+        Z = T[5:,5:]
+        T.resize((5,5))
+        assert Z._valid == False
 
 
 

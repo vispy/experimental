@@ -31,18 +31,27 @@ fragment = """
         float value = texture2D(u_data, v_texcoord).r;
 
         // Map value to rgb color
-        vec3 color = texture1D(u_colormap, value).rgb;
+        vec4 color = vec4(texture1D(u_colormap, value).rgb,1);
 
         // Trace contour
-        float thickness = 1.0;
-        vec3  v  = vec3(1.0, 1.0, value) * 16.0;
-        vec3  f  = abs(fract(v)-0.5);
-        vec3  df = fwidth(v);
-        vec3  g  = smoothstep(-thickness * df, thickness * df, f);
-        float c  = (1.0 - g.x * g.y * g.z);
-        color = (1.0-c)*color + c*vec3(0,0,0);
+        float antialias = 0.75;
+        float linewidth = 1.5 + antialias;
 
-        gl_FragColor = vec4(color,1.0);
+        float v  = value * 15.0;
+        float dv = linewidth/2.0 * fwidth(v);
+        float f = abs(fract(v)-0.5);
+        float d = smoothstep(-dv, +dv, f);
+        float t = linewidth/2.0 - antialias;
+        d = abs(d)*linewidth/2.0 - t;
+        if( d < 0.0 )
+        {
+            gl_FragColor = vec4(0,0,0,1);
+        }
+        else
+        {
+            d /= antialias;
+            gl_FragColor = (d)*color + (1.-d)*vec4(0,0,0,1);
+        }
     } """
 
 def display():
@@ -78,8 +87,8 @@ program['a_texcoord'] = ( 0, 0), ( 0,+1), (+1, 0), (+1,+1)
 # Build data
 # --------------------------------------
 def func3(x,y): return (1-x/2+x**5+y**3)*np.exp(-x**2-y**2)
-x = np.linspace(-3.0, 3.0, 128).astype(np.float32)
-y = np.linspace(-3.0, 3.0, 128).astype(np.float32)
+x = np.linspace(-3.0, 3.0, 256).astype(np.float32)
+y = np.linspace(-3.0, 3.0, 256).astype(np.float32)
 X,Y = np.meshgrid(x, y)
 Z = func3(X,Y)
 program['u_data'] = (Z-Z.min())/(Z.max() - Z.min())

@@ -123,7 +123,7 @@ class Texture(GLObject):
         else:
             self._offset = offset
 
-        self._gtype = Texture._types.get(self.dtype, None)
+        self._gtype = Texture._types.get(np.dtype(self.dtype), None)
         if self._gtype is None:
             raise ValueError("Type not allowed for texture")
 
@@ -240,9 +240,10 @@ class Texture(GLObject):
 
         self._pending_data = []
         self._need_update = False
+        self._need_resize = True
         self._shape = shape
         if self._data is not None and self._store:
-            self._data = np.resize(self._data, self._data.shape)
+            self._data = np.resize(self._data, self._shape)
         else:
             self._data = None
 
