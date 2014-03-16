@@ -29,7 +29,7 @@ Basic functions:
 Operations on functions:
   * composition with another function
   * +, -, *, /: composition with arithmetic functions
-  * .x, .y, etc: projectors
+  * .x, .y, .r, .g, etc: projectors (GLSL conventions)
   * .first, .second, .third, .last: projectors on subspace of cartesian product
   
 Standard mathematical functions:
@@ -65,10 +65,16 @@ f = exp(3*x)+1  # x is a shortcut for the Identity function
 import math
 import numpy as np
 class exp(Function):
-    def call(self, x):
+    def map(self, x):
         return math.exp(x)
-    def call_vect(self, x):
+    def map_vect(self, x):
         return np.exp(x)
+    def map_glsl(self):
+        return """
+        // A full GLSL function will be automatically generated
+        // with the appropriate signature and type declarations.
+        y = exp(x);
+        """
     def inverse(self):
         return log
 ```
