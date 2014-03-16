@@ -1,3 +1,22 @@
+## Functional interface
+
+**Rationale**: easy way to define functions in an abstract way in order to represent them in:
+
+* Python
+* GLSL
+* Javascript
+
+Could use some of the shader chaining stuff.
+
+Useful for:
+
+* transforms
+* colors
+* scripting interface
+* browser backend
+
+### Notes
+
 Domain: R^d, with d between 1 and 4 typically or a cartesian product of those.
 Specified by an integer d or a tuple of integers.
 
@@ -52,6 +71,8 @@ Function with source TimeDomain:
 
 ### Examples
 
+
+
 **Create a composite function**
 
 ```python
@@ -105,4 +126,13 @@ f = filter(mouse_position, tau=1.)
     
 ```
 
+
+### Misc
+
+
+* Interpolation: `interpolate(pos0, pos1, mode='linear')` returns a function of time that goes from pos0 to pos1.
+
+* Easing functions (linear, quadratic, circular, exponential, etc.), from [0,1] to [0,1]. If `phi` is an easing function, if `f` is a function of time, then `f(phi)` is `f` with easing.
+
+* `d=delay(1)` is a delay function. If `f` is a function of time, `f(d)` is a delayed version of `f`, in that `f(t)` is `f(t-1)`.
 
