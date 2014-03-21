@@ -91,7 +91,7 @@ class Listener(threading.Thread):
                     data = self.recv_msg()
                     msg += data
                     # I know, that is an ugly way, but for now it is ok.
-                    if len(data) != 4096:
+                    if len(data) != 2**16:
                         break
 
                 # Well it is getting uglier..
