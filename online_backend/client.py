@@ -40,11 +40,11 @@ def send_msg(socket, msg):
     temp = ""
     length = len(msg)
 
-    for i in range(0, length, 4096):
-        if i+4096 > length:
+    for i in range(0, length, 2**16):
+        if i+2**16 > length:
             temp = msg[i:]
         else:
-            temp = msg[i:i+4096]
+            temp = msg[i:i+2**16]
 
         temp = struct.pack('>I', len(temp)) + temp
         socket.send(temp)
