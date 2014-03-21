@@ -1,4 +1,7 @@
-import sys, json, socket, threading, pickle, Image, struct, base64
+import sys, json, socket, threading, pickle, struct, base64
+
+from PIL import Image
+
 from twisted.internet import reactor
 from twisted.python import log
 from twisted.web.server import Site
