@@ -70,40 +70,36 @@ void main()
 """
 
 #Global variable that main thread changes and server thread uses
-PNG = ""
+SCREENSHOT = []
 
-# Main thread (glut) calls this function
-def save_PNG():
+# Server thread calls this function
+def send_PNG():
     """
     since Image module can convert numpy.ndarray into a PNG image with
     fromarray() function, I used it.
     However I couldn't get the bytes from it so every time it is saving the
-    image onto stream and reads it again in order to convert to base64 string.
+    image onto buffer and reads it again in order to convert to base64 string.
     """
-    global PNG
-
-    img = screenshot()
-    img = Image.fromarray(img)
+    img = Image.fromarray(SCREENSHOT)
 
     # Save the image onto buffer
-    # This is still too slow!
     buf = cStringIO.StringIO()
     img.save(buf, "PNG")
-    PNG = buf.getvalue().encode("base64")
+    # Open it again and encode with base64
+    base64_PNG = buf.getvalue().encode("base64")
     buf.close()
 
-
-# Server thread calls this function
-def send_PNG():
-    return json.dumps({"image" : PNG})
+    return json.dumps({"image" : base64_PNG})
 
 
 def screenshot(viewport=None):
     """ Take a screenshot using glReadPixels."""
-    
+    global SCREENSHOT
+
     # gl.glReadBuffer(gl.GL_BACK) Not avaliable in ES 2.0
-    if viewport is None:
-        viewport = gl.glGetParameter(gl.GL_VIEWPORT)
+    #if viewport is None:
+    #    viewport = gl.glGetParameter(gl.GL_VIEWPORT)
+
     x, y, w, h = 0, 0, 500, 500
     gl.glPixelStorei(gl.GL_PACK_ALIGNMENT, 1) # PACK, not UNPACK
     im = gl.glReadPixels(x, y, w, h, gl.GL_RGB, gl.GL_UNSIGNED_BYTE)
@@ -114,7 +110,9 @@ def screenshot(viewport=None):
         im = np.frombuffer(im, np.uint8)
     im.shape = h, w, 3
     im = np.flipud(im)
-    return im
+
+    # Save screenshot into a global variable
+    SCREENSHOT = im
 
 
 def display():
@@ -122,8 +120,8 @@ def display():
     program.draw(gl.GL_TRIANGLES, indices)
     glut.glutSwapBuffers()
 
-    # Save screen in every display()
-    save_PNG()
+    # Take screenshot in every display()
+    screenshot()
 
 
 def reshape(width, height):
