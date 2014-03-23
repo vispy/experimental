@@ -10,7 +10,7 @@
         var sock = null;
 
         /* Default address */
-        var wsuri = "ws://localhost:9000";
+        var wsuri = "ws://localhost:9000/";
 
         function change_address()
         {
@@ -36,47 +36,43 @@
             }
             else
             {
-                log("Browser does not support WebSocket!");
-                window.location = "http://autobahn.ws/unsupportedbrowser";
+                alert("Browser does not support WebSocket!");
             }
 
-            if (sock)
+            sock.onopen = function(evt)
             {
-                sock.onopen = function()
+                document.getElementById("change").style.display = "none";
+                document.getElementById("wsuri").style.display = "none";
+
+                sock.send("Send me some PNGs");
+            }
+
+            sock.onclose = function(evt)
+            {
+                sock = null;
+            }
+
+            sock.onmessage = function(msg)
+            {
+                var message = JSON.parse(msg.data);
+
+                var img = new Image();
+
+                img.onload = function()
                 {
-                    document.getElementById("change").style.display = "none";
-                    document.getElementById("wsuri").style.display = "none";
+                    // Draw the image to the canvas
+                    canvas2d.drawImage(img, 0, 0);
+                };
 
-                    sock.send("Send me some PNGs");
-                }
-
-                sock.onclose = function(e)
-                {
-                    sock = null;
-                }
-
-                sock.onmessage = function(msg)
-                {
-                    var message = JSON.parse(msg.data);
-
-                    var img = new Image();
-
-                    img.onload = function()
-                    {
-                        // Draw the image to the canvas
-                        canvas2d.drawImage(img, 0, 0);
-                    };
-
-                    img.src = "data:image/png;base64," + message.image;
-                    sock.send("Send me another one");
-                }
+                img.src = "data:image/png;base64," + message.image;
+                sock.send("Send me another one");
             }
         }
 
     </script>
     <canvas id="canvas" width="500" height="500"></canvas>
 
-    <input type="text" id="wsuri" placeholder="ws://localhost:9000">
+    <input type="text" id="wsuri" placeholder="ws://localhost:9000/">
     <button id="change" onclick="change_address()">Connect</button>
 
     <noscript>You must enable JavaScript</noscript>
