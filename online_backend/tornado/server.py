@@ -85,13 +85,12 @@ def save_PNG():
     img = screenshot()
     img = Image.fromarray(img)
 
-    # Save the image onto stream
+    # Save the image onto buffer
     # This is still too slow!
-    stream = cStringIO.StringIO()
-    img.save(stream, "PNG")
-    PNG = stream.getvalue().encode("base64")
-
-    stream.close()
+    buf = cStringIO.StringIO()
+    img.save(buf, "PNG")
+    PNG = buf.getvalue().encode("base64")
+    buf.close()
 
 
 # Server thread calls this function
@@ -100,8 +99,8 @@ def send_PNG():
 
 
 def screenshot(viewport=None):
-    """ Take a screenshot using glReadPixels.
-    """
+    """ Take a screenshot using glReadPixels."""
+    
     # gl.glReadBuffer(gl.GL_BACK) Not avaliable in ES 2.0
     if viewport is None:
         viewport = gl.glGetParameter(gl.GL_VIEWPORT)
