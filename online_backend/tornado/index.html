@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<head>
+<title>JsClient</title>
+
+</head>
+<body>
+    <script>
+        /* Websocket */
+        var sock = null;
+
+        /* Default address */
+        var wsuri = "ws://localhost:9000/";
+
+        function change_address()
+        {
+            var address = document.getElementById("wsuri");
+            if(address.value.length != 0)
+            {
+                wsuri = address.value;
+            }
+            if (sock != null)
+            {
+                sock.close();
+            }
+            draw();
+        }
+
+        function draw()
+        {
+            var canvas2d = document.getElementById("canvas").getContext("2d");
+
+            if ("WebSocket" in window)
+            {
+                sock = new WebSocket(wsuri);
+            }
+            else
+            {
+                alert("Browser does not support WebSocket!");
+            }
+
+            sock.onopen = function(evt)
+            {
+                document.getElementById("change").style.display = "none";
+                document.getElementById("wsuri").style.display = "none";
+
+                sock.send("Send me some PNGs");
+            }
+
+            sock.onclose = function(evt)
+            {
+                sock = null;
+            }
+
+            sock.onmessage = function(msg)
+            {
+                var message = JSON.parse(msg.data);
+
+                var img = new Image();
+
+                img.onload = function()
+                {
+                    // Draw the image to the canvas
+                    canvas2d.drawImage(img, 0, 0);
+                };
+
+                img.src = "data:image/png;base64," + message.image;
+                sock.send("Send me another one");
+            }
+        }
+
+    </script>
+
+    <canvas id="canvas" width="500" height="500"></canvas>
+
+    <input type="text" id="wsuri" placeholder="ws://localhost:9000/">
+    <button id="change" onclick="change_address()">Connect</button>
+
+    <noscript>You must enable JavaScript</noscript>
+</body>
+</html>
