@@ -155,11 +155,57 @@
     
     
     
+    
+    var _ufunctions = {
+        'GL_FLOAT':        'uniform1fv',
+        'GL_FLOAT_VEC2':   'uniform2fv',
+        'GL_FLOAT_VEC3':   'uniform3fv',
+        'GL_FLOAT_VEC4':   'uniform4fv',
+        'GL_INT':          'uniform1iv',
+        'GL_BOOL':         'uniform1iv',
+        'GL_FLOAT_MAT2':   'uniformMatrix2fv',
+        'GL_FLOAT_MAT3':   'uniformMatrix3fv',
+        'GL_FLOAT_MAT4':   'uniformMatrix4fv',
+        'GL_SAMPLER_2D':   'uniform1i',
+    }
+    
+    function Uniform(c, program, name, gtype) {
+        this.c = c;
+        this.program = program;
+        this.name = name;
+        this.gtype = gtype;
+        this._ufunction = _ufunctions[gtype];
+    }
+    Uniform.prototype = new GLObject();
+    Uniform.prototype.set_data = function(data) {
+        this.data = data;
+        this._need_update = true;
+    }
+    Uniform.prototype._create = function() {
+        this._handle = this.c.gl.getUniformLocation(this.program._handle, this.name);
+    }
+    Uniform.prototype._activate = function() {
+        // TODO texture
+    }
+    Uniform.prototype._deactivate = function() {
+        // TODO texture
+    }
+    Uniform.prototype._update = function() {
+        if (this.data == undefined)
+            return;
+        this.c.gl[this._ufunction](this._handle, this.data);
+    }
+    
+    
+    
+    
+    
     function Program(c, vertex, fragment) {
         this.c = c;
         this.vertex = compile_shader(c, "VERTEX_SHADER", vertex);
         this.fragment = compile_shader(c, "FRAGMENT_SHADER", fragment);
         this._attributes = {};
+        this._uniforms = {};
         this._create();
     }
     Program.prototype = new GLObject();
@@ -181,6 +227,11 @@
         if (typeof(data) != undefined)
             this.set_data(name, data);
     }
+    Program.prototype.add_uniform = function(name, gtype, data) {
+        this._uniforms[name] = new Uniform(this.c, this, name, gtype);
+        if (typeof(data) != undefined)
+            this.set_data(name, data);
+    }
     Program.prototype._activate = function() {
         if (this._need_update) {
             return;
@@ -189,15 +240,23 @@
         for (var name in this._attributes) {
             this._attributes[name].activate();
         }
+        for (var name in this._uniforms) {
+            this._uniforms[name].activate();
+        }
     }
     Program.prototype._deactivate = function() {
-        //this.c.gl.useProgram(0);
-        for (var i = 0; i < this._attributes.length; i++) {
-            this._attributes[i].deactivate();
+        for (var name in this._attributes) {
+            this._attributes[name].deactivate();
+        }
+        for (var name in this._uniforms) {
+            this._uniforms[name].deactivate();
         }
     }
     Program.prototype.set_data = function(name, data) {
-        this._attributes[name].set_data(data);
+        if (name in this._attributes)
+            this._attributes[name].set_data(data);
+        if (name in this._uniforms)
+            this._uniforms[name].set_data(data);
     }
     Program.prototype.draw = function(mode, count) {
         this.activate();
@@ -215,19 +274,22 @@
         
         var vertex = 
             "attribute vec2 a_position; " +
+            "uniform vec4 u_color; " +
             "void main() { " +
             "    gl_Position = vec4(a_position, 0.0, 1.0);" +
             "}";
 
          var fragment = 
+            "uniform vec4 u_color; " +
             "void main() {" +
-            "    gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0); " +
+            "    gl_FragColor = u_color; " +
             "}";
         
         var prog = new Program(c, vertex, fragment);
         data = new Float32Array([-1., 0., 1., 0]);
         var vbo = new Buffer(c, data);
         prog.add_attribute('a_position', 'GL_FLOAT_VEC2', vbo);
+        prog.add_uniform('u_color', 'GL_FLOAT_VEC4', new Float32Array([1., 0., 0., 1.]));
         prog.draw('LINE_STRIP');
         
     }
