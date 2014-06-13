@@ -222,13 +222,13 @@
 
          var fragment = 
             "void main() {" +
-            "    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); " +
+            "    gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0); " +
             "}";
         
         var prog = new Program(c, vertex, fragment);
-        data = new Float32Array([0., 0., 0., 1., 0., 2.]);
+        data = new Float32Array([-1., 0., 1., 0]);
         var vbo = new Buffer(c, data);
-        var mode = 'GL_LINE_STRIP';
+        var mode = 'LINE_STRIP';
         prog.add_attribute('a_position', 'GL_FLOAT_VEC2');
         prog.set_data('a_position', vbo);
         prog.draw(mode, data.length/2);
