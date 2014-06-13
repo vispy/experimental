@@ -129,7 +129,6 @@
     Attribute.prototype = new GLObject();
     Attribute.prototype.set_data = function(data) {
         this.data = data;
-        this.size = data.length;
     }
     Attribute.prototype._create = function() {
         this._handle = this.c.gl.getAttribLocation(this.program._handle, this.name);
@@ -137,13 +136,14 @@
     Attribute.prototype._activate = function() {
         this.data.activate();
         r = gl_typeinfo[this.gtype];
-        size = r[0];
+        ndim = r[0];
         gtype = r[1];
         dtype = r[2];
         stride = this.data.stride;
+        this.size = data.length / ndim;
         
         this.c.gl.enableVertexAttribArray(this._handle);
-        this.c.gl.vertexAttribPointer(this._handle, size, this.c.gl[gtype],
+        this.c.gl.vertexAttribPointer(this._handle, ndim, this.c.gl[gtype],
                                     false, 0, this.data.offset);
     }
     Attribute.prototype._deactivate = function() {
@@ -167,7 +167,6 @@
         this._handle = this.c.gl.createProgram();
     }
     Program.prototype._update = function() {
-        //console.log('program update');
         this.c.gl.attachShader(this._handle, this.vertex);
         this.c.gl.attachShader(this._handle, this.fragment);
         this.c.gl.linkProgram(this._handle);
@@ -177,15 +176,15 @@
             console.log("Could not initialise shaders");
         }
     }
-    Program.prototype.add_attribute = function(name, gtype) {
+    Program.prototype.add_attribute = function(name, gtype, data) {
         this._attributes[name] = new Attribute(this.c, this, name, gtype);
+        if (typeof(data) != undefined)
+            this.set_data(name, data);
     }
     Program.prototype._activate = function() {
-    
         if (this._need_update) {
             return;
         }
-    
         this.c.gl.useProgram(this._handle);
         for (var name in this._attributes) {
             this._attributes[name].activate();
@@ -203,7 +202,7 @@
     Program.prototype.draw = function(mode, count) {
         this.activate();
         first = 0;
-        // TODO: determine count
+        count = this._attributes[Object.keys(this._attributes)[0]].size;
         this.c.gl.drawArrays(this.c.gl[mode], first, count);
         this.deactivate();
     }
@@ -228,10 +227,8 @@
         var prog = new Program(c, vertex, fragment);
         data = new Float32Array([-1., 0., 1., 0]);
         var vbo = new Buffer(c, data);
-        var mode = 'LINE_STRIP';
-        prog.add_attribute('a_position', 'GL_FLOAT_VEC2');
-        prog.set_data('a_position', vbo);
-        prog.draw(mode, data.length/2);
+        prog.add_attribute('a_position', 'GL_FLOAT_VEC2', vbo);
+        prog.draw('LINE_STRIP');
         
     }
 
