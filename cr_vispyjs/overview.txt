@@ -1,0 +1,52 @@
+
+Buffer
+    nbytes
+    
+    set_data
+    _create
+        glCreateBuffer
+    _delete
+        glDeleteBuffer
+    _activate
+        glBindBuffer
+    _deactivate
+    _update
+        glBufferData
+
+    
+Attribute
+    name
+    gtype
+    dtype
+    data
+    size
+    
+    set_data
+    _create
+        glGetAttribLocation
+    _activate
+        glEnableVertexAttribArray
+        glVertexAttribPointer
+    _deactivate
+        data.deactivate
+    _update
+        glEnableVertexAttribArray
+        glVertexAttribPointer
+
+Program
+    _create
+        glCreateProgram
+    _update
+        glAttachShader
+        glLinkProgram
+        glValidateProgram
+    _delete
+        glDeleteProgram
+    _activate
+        glUseProgram
+        attr/unif.activate
+    _deactivate
+    draw
+        activate
+        glDrawArrays
+        deactivate
