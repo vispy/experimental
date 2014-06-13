@@ -23,8 +23,216 @@
         clear(c, [0,0,0,1]);
     }
     
+    function compile_shader(c, type, source) {
+        source = "precision mediump float;\n" + source;
+        source = source.replace(/\\n/g, "\n")
+        
+        var shader = c.gl.createShader(c.gl[type]);
+
+        c.gl.shaderSource(shader, source);
+        c.gl.compileShader(shader);
+
+        if (!c.gl.getShaderParameter(shader, c.gl.COMPILE_STATUS))
+        {
+            console.log(c.gl.getShaderInfoLog(shader));
+            return null;
+        }
+
+        return shader;
+    }
+    
+    
+    
+    function GLObject() {
+        this._handle = -1;
+        this._need_create = true;
+        this._need_update = true;
+        this._need_delete = false;
+    }
+    GLObject.prototype._activate = function() { }
+    GLObject.prototype._deactivate = function() { }
+    GLObject.prototype._create = function() { }
+    GLObject.prototype._update = function() { }
+    GLObject.prototype.activate = function() {
+    
+        if (this._need_create) {
+            this._create();
+            this._need_create = false;
+        }
+        
+        this._activate();
+        
+        if (this._need_update) {
+            this._update();
+            this._need_update = false;
+            this._activate();
+        }
+    }
+    GLObject.prototype.deactivate = function() {
+        this._deactivate();
+    }
+    
+    
+    
+    
+    function Buffer(c, data, type) {
+        if (typeof(type) == 'undefined')
+            type = 'ARRAY_BUFFER'
+        this.c = c;
+        this.type = type;
+        this.set_data(data);
+    }
+    Buffer.prototype = new GLObject();
+    Buffer.prototype.set_data = function(data) {
+        this.data = data;
+        this.nbytes = data.length;
+    }
+    Buffer.prototype._create = function() {
+        this._handle = this.c.gl.createBuffer();
+    }
+    Buffer.prototype._delete = function() {
+        this.c.gl.deleteBuffer(this._handle);
+    }
+    Buffer.prototype._activate = function() {
+        this.c.gl.bindBuffer(this.c.gl[this.type], this._handle);
+    }
+    Buffer.prototype._deactivate = function() {
+        //this.c.gl.bindBuffer(this.c.gl[this.type], 0);
+    }
+    Buffer.prototype._update = function() {
+        this.c.gl.bufferData(this.c.gl[this.type], this.data, this.c.gl.STATIC_DRAW);
+    }
+    
+    
+    
+    var gl_typeinfo = {
+        'GL_FLOAT':         [1, 'FLOAT', 'float32'],
+        'GL_FLOAT_VEC2':    [2, 'FLOAT', 'float32'],
+        'GL_FLOAT_VEC3':    [3, 'FLOAT', 'float32'],
+        'GL_FLOAT_VEC4':    [4, 'FLOAT', 'float32'],
+        'GL_INT':           [1, 'INT', 'int32'],
+        'GL_INT_VEC2':      [2, 'INT', 'int32'],
+        'GL_INT_VEC3':      [3, 'INT', 'int32'],
+        'GL_INT_VEC4':      [4, 'INT', 'int32'],
+        'GL_BOOL':          [1, 'BOOL', 'bool'],
+        'GL_BOOL_VEC2':     [2, 'BOOL', 'bool'],
+        'GL_BOOL_VEC3':     [3, 'BOOL', 'bool'],
+        'GL_BOOL_VEC4':     [4, 'BOOL', 'bool']
+    }
+    
+    function Attribute(c, program, name, gtype) {
+        this.c = c;
+        this.program = program;
+        this.name = name;
+        this.gtype = gtype;
+    }
+    Attribute.prototype = new GLObject();
+    Attribute.prototype.set_data = function(data) {
+        this.data = data;
+        this.size = data.length;
+    }
+    Attribute.prototype._create = function() {
+        this._handle = this.c.gl.getAttribLocation(this.program._handle, this.name);
+    }
+    Attribute.prototype._activate = function() {
+        this.data.activate();
+        r = gl_typeinfo[this.gtype];
+        size = r[0];
+        gtype = r[1];
+        dtype = r[2];
+        stride = this.data.stride;
+        
+        this.c.gl.enableVertexAttribArray(this._handle);
+        this.c.gl.vertexAttribPointer(this._handle, size, this.c.gl[gtype],
+                                    false, 0, this.data.offset);
+    }
+    Attribute.prototype._deactivate = function() {
+        this.data.deactivate();
+    }
+    Attribute.prototype._update = function() {
+        // TODO
+    }
+    
+    
+    
+    function Program(c, vertex, fragment) {
+        this.c = c;
+        this.vertex = compile_shader(c, "VERTEX_SHADER", vertex);
+        this.fragment = compile_shader(c, "FRAGMENT_SHADER", fragment);
+        this._attributes = {};
+        this._create();
+    }
+    Program.prototype = new GLObject();
+    Program.prototype._create = function() {
+        this._handle = this.c.gl.createProgram();
+    }
+    Program.prototype._update = function() {
+        //console.log('program update');
+        this.c.gl.attachShader(this._handle, this.vertex);
+        this.c.gl.attachShader(this._handle, this.fragment);
+        this.c.gl.linkProgram(this._handle);
+
+        if (!this.c.gl.getProgramParameter(this._handle, this.c.gl.LINK_STATUS))
+        {
+            console.log("Could not initialise shaders");
+        }
+    }
+    Program.prototype.add_attribute = function(name, gtype) {
+        this._attributes[name] = new Attribute(this.c, this, name, gtype);
+    }
+    Program.prototype._activate = function() {
+    
+        if (this._need_update) {
+            return;
+        }
+    
+        this.c.gl.useProgram(this._handle);
+        for (var name in this._attributes) {
+            this._attributes[name].activate();
+        }
+    }
+    Program.prototype._deactivate = function() {
+        //this.c.gl.useProgram(0);
+        for (var i = 0; i < this._attributes.length; i++) {
+            this._attributes[i].deactivate();
+        }
+    }
+    Program.prototype.set_data = function(name, data) {
+        this._attributes[name].set_data(data);
+    }
+    Program.prototype.draw = function(mode, count) {
+        this.activate();
+        first = 0;
+        // TODO: determine count
+        this.c.gl.drawArrays(this.c.gl[mode], first, count);
+        this.deactivate();
+    }
+    
+    
+    
     function start() {
-        init_gl(document.getElementById('vispy-canvas'));
+        var c = document.getElementById('vispy-canvas');
+        init_gl(c);
+        
+        var vertex = 
+            "attribute vec2 a_position; " +
+            "void main() { " +
+            "    gl_Position = vec4(a_position, 0.0, 1.0);" +
+            "}";
+
+         var fragment = 
+            "void main() {" +
+            "    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); " +
+            "}";
+        
+        var prog = new Program(c, vertex, fragment);
+        data = new Float32Array([0., 0., 0., 1., 0., 2.]);
+        var vbo = new Buffer(c, data);
+        var mode = 'GL_LINE_STRIP';
+        prog.add_attribute('a_position', 'GL_FLOAT_VEC2');
+        prog.set_data('a_position', vbo);
+        prog.draw(mode, data.length/2);
+        
     }
 
     </script>
