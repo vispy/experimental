@@ -68,17 +68,22 @@
         size = Math.floor(data.byteLength / 4);
         // TODO: accept 16 and 8 bit and 64 bit
         // 32 bits floats
-        if (vartype == 'GL_FLOAT')
+        if (vartype.startsWith('GL_FLOAT'))
             data = new Float32Array(data, 0, size);
         // 32 bits int
-        else if (vartype == 'GL_INT')
+        else if (vartype.startsWith('GL_INT'))
             // HACK: we force int32 to be float32 for OpenGL ES
             data = new Float32Array(new Int32Array(data, 0, size));
         return data;
     }
 
 
-    
+    if (typeof String.prototype.startsWith != 'function') {
+      // see below for better implementation!
+      String.prototype.startsWith = function (str){
+        return this.indexOf(str) == 0;
+      };
+    }
     
     
     
@@ -361,12 +366,15 @@
         }
         
         for (var name in program['uniforms']) {
-            attr = program['uniforms'][name];
-            var gtype = attr['gtype'];
-            var data = get_array(attr['data']['buffer'], gtype)
-            var vbo = new Buffer(c, data);
-            prog.add_uniform(name, gtype, vbo);
+            uniform = program['uniforms'][name];
+            var gtype = uniform['gtype'];
+            //var data = get_array(uniform['data']['buffer'], gtype);
+            // TODO: WTF??
+            var data = new Float32Array(Base64Binary.decodeArrayBuffer(uniform['data']['buffer']), 0, 4);
+            prog.add_uniform(name, gtype, data);
         }
+        
+        //prog.add_uniform('u_color', 'GL_FLOAT_VEC4', [1.,1.,1.,1.]);
         
         prog.draw(program['mode'].toUpperCase());
     }

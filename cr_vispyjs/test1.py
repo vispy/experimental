@@ -5,6 +5,7 @@ from vispy import gloo
 vertex = """
 attribute float x;
 attribute float y;
+uniform vec4 u_color;
 void main (void)
 {
     gl_Position = vec4(x, y, 0., 1.0);
@@ -12,9 +13,10 @@ void main (void)
 """
 
 fragment = """
+uniform vec4 u_color;
 void main()
 {
-    gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+    gl_FragColor = vec4(u_color.x, 1., 0., 1.);
 }
 """
 
@@ -24,6 +26,7 @@ class Window(app.Canvas):
         self.program = gloo.Program(vertex, fragment)
         self.program['x'] = gloo.VertexBuffer(np.linspace(-1.0, +1.0, n).astype(np.float32))
         self.program['y'] = gloo.VertexBuffer(np.random.uniform(-0.5, +0.5, n).astype(np.float32))
+        self.program['u_color'] = np.array((1., 0., 0., 1.), dtype=np.float32)
 
     def on_resize(self, event):
         gloo.set_viewport(0, 0, event.size[0], event.size[1])
