@@ -15,7 +15,8 @@
     function start() {
         $.getJSON( "test2.json", function(gloo_export) {
             var c = document.getElementById('vispy-canvas');
-            init_gl(c);            
+            init_gl(c);
+            init_action(c);
             CANVAS = c;
             
             SCENE = create_scene(c, gloo_export);
@@ -27,8 +28,13 @@
         show_scene(CANVAS, SCENE);
     }
     
-    function scale(scale) {
-        SCENE['programs']['program'].set_data('u_scale', scale);
+    function scale(s) {
+        SCENE['programs']['program'].set_data('u_scale', s);
+        update();
+    }
+    
+    function translate(t) {
+        SCENE['programs']['program'].set_data('u_scale', t);
         update();
     }
 

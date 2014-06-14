@@ -102,11 +102,9 @@ class Canvas(app.Canvas):
             self.update()
         
 c = Canvas()
-# print c.program._data._data
-
 c.show()
 app.run()
 
-from vispy_export import export_canvas_json
-export_canvas_json(c, 'test2.json')
+# from vispy_export import export_canvas_json
+# export_canvas_json(c, 'test2.json')
 

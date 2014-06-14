@@ -1,0 +1,145 @@
+<html>
+<head>
+    <title>vispy.js</title>
+    <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+
+    <!-- JAVASCRIPT UTILS -->
+    
+    <script language="javascript" type="text/javascript" src="jquery-1.11.1.min.js"></script>
+    <script language="javascript" type="text/javascript" src="jquery.mousewheel.min.js"></script>
+    
+    <script language="javascript" type="text/javascript" src="vispy.js"></script>
+    
+    <script type="text/javascript">
+    var c;
+    
+    function get_pos(c, e) {
+        return [e.clientX - c.offsetLeft, e.clientY - c.offsetTop];
+    }
+    
+    function gen_mouse_event(c, e, type) {
+        if (c._eventinfo.is_button_pressed)
+            var button = e.button;
+        else
+            button = null;
+        var pos = get_pos(c, e);
+        var modifiers = c._eventinfo.modifiers;
+        var press_event = c._eventinfo.press_event;
+        var last_event = c._eventinfo.last_event;
+        var event = {
+            'type': type,
+            'pos': pos,
+            'button': button,
+            'is_dragging': press_event != null,
+            'modifiers': modifiers,
+            'delta': null,
+            'press_event': press_event,
+            
+            //'last_event': last_event,  // WARNING: recursion problems?
+        }
+        return event;
+    }
+    
+    function start() {
+        c = document.getElementById('vispy-canvas');
+        
+        c.mouse_press = function(e) { console.log(e); };
+        c.mouse_release = function(e) { console.log(e); };
+        c.mouse_move = function(e) { console.log(e); };
+        c.mouse_wheel = function(e) { console.log(e); };
+        
+        c.key_press = function(e) { console.log(e); };
+        c.key_release = function(e) { console.log(e); };
+        
+        // This object stores some state necessary to generate the appropriate
+        // events.
+        c._eventinfo = {
+            'type': null,
+            'pos': null,
+            'button': null,
+            'is_dragging': null,
+            'modifiers': [],
+            'press_event': null,
+            'last_event': null,
+            'delta': null,
+        }
+        
+        // HACK: boolean stating whether a mouse button is pressed.
+        // This is necessary because e.button==0 in two cases: no
+        // button is pressed, or the left button is pressed.
+        c._eventinfo.is_button_pressed = 0;
+        
+        c.onmousemove = function(e) {
+            var event = gen_mouse_event(c, e, 'mouse_move');
+            
+            // Vispy callbacks.
+            c.mouse_move(event);
+            
+            // Save the last event.
+            c._eventinfo.last_event = event;
+        }
+        c.onmousedown = function(e) {
+            ++c._eventinfo.is_button_pressed;
+            var event = gen_mouse_event(c, e, 'mouse_release');
+            
+            // Vispy callbacks.
+            c.mouse_press(event);
+            
+            // Save the last press event.
+            c._eventinfo.press_event = event;
+            // Save the last event.
+            c._eventinfo.last_event = event;
+        }
+        c.onmouseup = function(e) {
+            --c._eventinfo.is_button_pressed;
+            var event = gen_mouse_event(c, e, 'mouse_press');
+            
+            // Vispy callbacks.
+            c.mouse_release(event);
+            
+            // Reset the last press event.
+            c._eventinfo.press_event = null;
+            // Save the last event.
+            c._eventinfo.last_event = event;
+        }
+        c.onclick = function(e) {
+        
+            // Reset the last press event.
+            c._eventinfo.press_event = null;
+        }
+        c.ondblclick = function(e) {
+        
+            // Reset the last press event.
+            c._eventinfo.press_event = null;
+        }
+        c.onmousewheel = function(e) {
+            var event = gen_mouse_event(c, e, 'mouse_wheel');
+            event.delta = [e.wheelDeltaX / 100., e.wheelDeltaY / 100.];
+            
+            // Vispy callbacks.
+            c.mouse_wheel(event);
+            
+            // Save the last event.
+            c._eventinfo.last_event = event;
+        }
+        
+        
+        c.onkeypress = function(e) {
+            c._eventinfo.modifiers = [];  // TODO
+        }
+        c.onkeyup = function(e) {
+            c._eventinfo.modifiers = [];  // TODO
+        }
+        c.onkeydown = function(e) {
+            c._eventinfo.modifiers = [];  // TODO
+        }
+        
+        
+    }
+
+    </script>
+</head>
+<body onload="start();">
+    <canvas id="vispy-canvas" tabindex="1" width="400" height="400"></canvas>
+</body>
+</html>
