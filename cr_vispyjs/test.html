@@ -12,16 +12,24 @@
     
     <script type="text/javascript">
     
-    
     function start() {
-        $.getJSON( "test2.json", function(scene) {
-            
+        $.getJSON( "test2.json", function(gloo_export) {
             var c = document.getElementById('vispy-canvas');
-            init_gl(c);
+            init_gl(c);            
+            CANVAS = c;
             
-            show_scene(c, scene);
-            
+            SCENE = create_scene(c, gloo_export);
+            show_scene(c, SCENE);
         });
+    }
+    
+    function update() {
+        show_scene(CANVAS, SCENE);
+    }
+    
+    function scale(scale) {
+        SCENE['programs']['program'].set_data('u_scale', scale);
+        update();
     }
 
     </script>

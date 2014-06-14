@@ -336,41 +336,57 @@ Program.prototype.set_data = function(name, data) {
     if (name in this._uniforms)
         this._uniforms[name].set_data(data);
 }
-Program.prototype.draw = function(mode, count) {
+Program.prototype.draw = function(count) {
     this.activate();
     first = 0;
     count = this._attributes[Object.keys(this._attributes)[0]].size;
-    this.c.gl.drawArrays(this.c.gl[mode], first, count);
+    this.c.gl.drawArrays(this.c.gl[this.mode], first, count);
     this.deactivate();
 }
 
-function show_program(c, program) {
+function create_program(c, program_export) {
+    var vertex = program_export['vertex_shader'];
+    var fragment = program_export['fragment_shader'];
     
-    var vertex = program['vertex_shader'];
-    var fragment = program['fragment_shader'];
+    var program = new Program(c, vertex, fragment);
+    program.mode = program_export['mode'].toUpperCase();
     
-    var prog = new Program(c, vertex, fragment);
-    
-    for (var name in program['attributes']) {
-        attr = program['attributes'][name];
+    for (var name in program_export['attributes']) {
+        attr = program_export['attributes'][name];
         var gtype = attr['gtype'];
         var data = get_array(attr['data']['buffer'], gtype)
         var vbo = new Buffer(c, data);
-        prog.add_attribute(name, gtype, vbo);
+        program.add_attribute(name, gtype, vbo);
     }
     
-    for (var name in program['uniforms']) {
-        uniform = program['uniforms'][name];
+    for (var name in program_export['uniforms']) {
+        uniform = program_export['uniforms'][name];
         var gtype = uniform['gtype'];
         var data = get_array(uniform['data']['buffer'], gtype);
-        prog.add_uniform(name, gtype, data);
+        program.add_uniform(name, gtype, data);
     }
-    
-    prog.draw(program['mode'].toUpperCase());
+    return program;
 }
 
-function show_scene(c, scene) {
-    for (var prog in scene['programs']) {
-        show_program(c, scene['programs'][prog]);
+function show_program(c, program) {
+    program.draw();
+}
+
+function create_scene(c, gloo_export) {
+    _programs = {}
+    for (var progname in gloo_export['programs']) {
+        program = create_program(c, gloo_export['programs'][progname]);
+        _programs[progname] = program;
+    }
+    scene = {'programs': _programs};
+    return scene;
+}
+
+function show_scene(c, scene, color) {
+    if (color == undefined)
+        color = [0., 0., 0., 1.];
+    clear(c, color);
+    for (var name in scene['programs']) {
+        show_program(c, scene['programs'][name]);
     }
 }
