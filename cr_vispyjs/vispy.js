@@ -562,20 +562,20 @@ function show_program(c, program) {
 }
 
 function create_scene(c, gloo_export) {
-    _programs = {}
-    for (var progname in gloo_export['programs']) {
-        program = create_program(c, gloo_export['programs'][progname]);
-        _programs[progname] = program;
+    for (var name in gloo_export['programs']) {
+        program = create_program(c, gloo_export['programs'][name]);
+        c[name] = program;
     }
-    scene = {'programs': _programs};
-    return scene;
+    
+    c.on_draw = function(e) {
+        color = [0., 0., 0., 1.];  // TODO
+        clear(c, color);
+        for (var name in gloo_export['programs']) {
+            show_program(c, c[name]);
+        }
+    };
+    c.update = c.on_draw;
+    
+    c.on_draw();
 }
 
-function show_scene(c, scene, color) {
-    if (color == undefined)
-        color = [0., 0., 0., 1.];
-    clear(c, color);
-    for (var name in scene['programs']) {
-        show_program(c, scene['programs'][name]);
-    }
-}

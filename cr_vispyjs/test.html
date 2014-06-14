@@ -17,25 +17,17 @@
             var c = document.getElementById('vispy-canvas');
             init_gl(c);
             init_app(c);
-            CANVAS = c;
             
-            SCENE = create_scene(c, gloo_export);
-            show_scene(c, SCENE);
+            create_scene(c, gloo_export);
+            
+            c._scale = 1.;
+            c.on_mouse_wheel = function(e) {
+                c._scale += e.delta[1]*.1;
+                c.program.set_data('u_scale', [c._scale, 1.]);
+                c.update();
+            }
+            
         });
-    }
-    
-    function update() {
-        show_scene(CANVAS, SCENE);
-    }
-    
-    function scale(s) {
-        SCENE['programs']['program'].set_data('u_scale', s);
-        update();
-    }
-    
-    function translate(t) {
-        SCENE['programs']['program'].set_data('u_scale', t);
-        update();
     }
 
     </script>
