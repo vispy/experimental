@@ -16,7 +16,7 @@
         $.getJSON( "test2.json", function(gloo_export) {
             var c = document.getElementById('vispy-canvas');
             init_gl(c);
-            init_action(c);
+            init_app(c);
             CANVAS = c;
             
             SCENE = create_scene(c, gloo_export);

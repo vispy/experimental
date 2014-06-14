@@ -1,3 +1,8 @@
+
+/******************************************************************************
+/ Utility functions
+/*****************************************************************************/
+
 // Base64 decoder
 var Base64Binary = {
     _keyStr : "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",
@@ -84,6 +89,180 @@ if (typeof String.prototype.startsWith != 'function') {
 
 
 
+/******************************************************************************
+/ vispy.app.js
+/*****************************************************************************/
+function get_pos(c, e) {
+    return [e.clientX - c.offsetLeft, e.clientY - c.offsetTop];
+}
+
+function get_modifiers(e) {
+    var modifiers = [];
+    if (e.altKey) modifiers.push('alt');
+    if (e.ctrlKey) modifiers.push('ctrl');
+    if (e.metaKey) modifiers.push('meta');
+    if (e.shiftKey) modifiers.push('shift');
+    return modifiers;
+}
+
+function get_key(e){
+    var keynum = null;
+    if(window.event){ // IE					
+        keynum = e.keyCode;
+    }
+    else if(e.which){ // Netscape/Firefox/Opera					
+            keynum = e.which;
+         }
+    return keynum;
+    if (keynum != null)
+        return String.fromCharCode(keynum).toLowerCase();
+    else
+        return null;
+}
+
+function gen_mouse_event(c, e, type) {
+    if (c._eventinfo.is_button_pressed)
+        var button = e.button;
+    else
+        button = null;
+    var pos = get_pos(c, e);
+    var modifiers = get_modifiers(e);
+    var press_event = c._eventinfo.press_event;
+    var last_event = c._eventinfo.last_event;
+    var event = {
+        'type': type,
+        'pos': pos,
+        'button': button,
+        'is_dragging': press_event != null,
+        'modifiers': modifiers,
+        'delta': null,
+        'press_event': press_event,
+        
+        //'last_event': last_event,  // WARNING: recursion problems?
+    }
+    return event;
+}
+
+function gen_key_event(c, e, type) {
+    var modifiers = get_modifiers(e);
+    var last_event = c._eventinfo.last_event;
+    var event = {
+        'type': type,
+        'modifiers': modifiers,
+        'key': get_key(e),
+        
+        //'last_event': last_event,  // WARNING: recursion problems?
+    }
+    return event;
+}
+
+function init_app(c) {
+    c.on_mouse_press = function(e) { };
+    c.on_mouse_release = function(e) { };
+    c.on_mouse_move = function(e) { };
+    c.on_mouse_wheel = function(e) { };
+    c.on_mouse_click = function(e) { };
+    c.on_mouse_dblclick = function(e) { };
+    
+    c.on_key_press = function(e) { };
+    c.on_key_release = function(e) { };
+    
+    // This object stores some state necessary to generate the appropriate
+    // events.
+    c._eventinfo = {
+        'type': null,
+        'pos': null,
+        'button': null,
+        'is_dragging': null,
+        'key': null,
+        'modifiers': [],
+        'press_event': null,
+        'last_event': null,
+        'delta': null,
+    }
+    
+    // HACK: boolean stating whether a mouse button is pressed.
+    // This is necessary because e.button==0 in two cases: no
+    // button is pressed, or the left button is pressed.
+    c._eventinfo.is_button_pressed = 0;
+    
+    c.onmousemove = function(e) {
+        var event = gen_mouse_event(c, e, 'mouse_move');
+        
+        // Vispy callbacks.
+        c.on_mouse_move(event);
+        
+        // Save the last event.
+        c._eventinfo.last_event = event;
+    }
+    c.onmousedown = function(e) {
+        ++c._eventinfo.is_button_pressed;
+        var event = gen_mouse_event(c, e, 'mouse_release');
+        
+        // Vispy callbacks.
+        c.on_mouse_press(event);
+        
+        // Save the last press event.
+        c._eventinfo.press_event = event;
+        // Save the last event.
+        c._eventinfo.last_event = event;
+    }
+    c.onmouseup = function(e) {
+        --c._eventinfo.is_button_pressed;
+        var event = gen_mouse_event(c, e, 'mouse_press');
+        
+        // Vispy callbacks.
+        c.on_mouse_release(event);
+        
+        // Reset the last press event.
+        c._eventinfo.press_event = null;
+        // Save the last event.
+        c._eventinfo.last_event = event;
+    }
+    c.onclick = function(e) {
+    
+        // Reset the last press event.
+        c._eventinfo.press_event = null;
+    }
+    c.ondblclick = function(e) {
+    
+        // Reset the last press event.
+        c._eventinfo.press_event = null;
+    }
+    c.onmousewheel = function(e) {
+        var event = gen_mouse_event(c, e, 'mouse_wheel');
+        event.delta = [e.wheelDeltaX / 100., e.wheelDeltaY / 100.];
+        
+        // Vispy callbacks.
+        c.on_mouse_wheel(event);
+        
+        // Save the last event.
+        c._eventinfo.last_event = event;
+    }
+    
+    
+    c.onkeypress = function(e) {
+        var event = gen_key_event(c, e, 'key_press');
+        
+        // Vispy callbacks.
+        c.on_key_press(event);
+        
+        // Save the last event.
+        c._eventinfo.last_event = event;
+    }
+    c.onkeyup = function(e) {
+        var event = gen_key_event(c, e, 'key_release');
+        
+        // Vispy callbacks.
+        c.on_key_release(event);
+        
+        // Save the last event.
+        c._eventinfo.last_event = event;
+    }
+    c.onkeydown = function(e) {
+        //c._eventinfo.modifiers = get_modifiers(e);
+    }
+}
 
 
 
@@ -91,17 +270,9 @@ if (typeof String.prototype.startsWith != 'function') {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
+/******************************************************************************
+/ vispy.gloo.js
+/*****************************************************************************/
 
 
 function viewport(c) {
