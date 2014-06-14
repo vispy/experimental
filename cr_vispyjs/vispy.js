@@ -244,6 +244,9 @@ function init_app(c) {
         c._eventinfo.last_event = event;
     }
     
+    document.onmousemove = c.onmousemove;
+    document.onmousedown = c.onmousedown;
+    document.onmouseup = c.onmouseup;
     
     c.onkeypress = function(e) {
         var event = gen_key_event(c, e, 'key_press');
@@ -265,6 +268,9 @@ function init_app(c) {
     }
     c.onkeydown = function(e) {
         //c._eventinfo.modifiers = get_modifiers(e);
+    }
+    
+    c.onmouseout = function(e) {
     }
 }
 

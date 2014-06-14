@@ -13,6 +13,8 @@
     <script type="text/javascript">
     
     function start() {
+        document.oncontextmenu = function () { return false; };
+    
         $.getJSON( "test2.json", function(gloo_export) {
             var c = document.getElementById('vispy-canvas');
             init_gl(c);
@@ -31,6 +33,7 @@
                 if (e.is_dragging) {
                     var p = normalize_pos(c, e.pos);
                     var p_ = normalize_pos(c, e.last_event.pos);
+                    var p_p = normalize_pos(c, e.press_event.pos);
                     var dx = p[0] - p_[0];
                     var dy = p[1] - p_[1];
                     
@@ -38,7 +41,7 @@
                         n.pan([dx, dy]);
                     }
                     else if (e.button == 2) {
-                        n.zoom([dx, dy], p);
+                        n.zoom([dx, dy], p_p);
                     }
                     update();
                 }
