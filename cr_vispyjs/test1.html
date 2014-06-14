@@ -64,16 +64,18 @@
 
     // Convert a Base64-encoded array into a Javascript Array Buffer.
     function get_array(s, vartype) {
-        data = Base64Binary.decodeArrayBuffer(s);
-        size = Math.floor(data.byteLength / 4);
+        var data = Base64Binary.decodeArrayBuffer(s);
+        var size = Math.floor(data.byteLength / 4);
         // TODO: accept 16 and 8 bit and 64 bit
         // 32 bits floats
-        if (vartype.startsWith('GL_FLOAT'))
+        if (vartype.startsWith('GL_FLOAT')) {
             data = new Float32Array(data, 0, size);
+        }
         // 32 bits int
-        else if (vartype.startsWith('GL_INT'))
+        else if (vartype.startsWith('GL_INT')) {
             // HACK: we force int32 to be float32 for OpenGL ES
             data = new Float32Array(new Int32Array(data, 0, size));
+        }
         return data;
     }
 
@@ -224,7 +226,7 @@
         gtype = r[1];
         dtype = r[2];
         stride = this.data.stride;
-        this.size = data.length / ndim;
+        this.size = this.data.nbytes / ndim;
         
         this.c.gl.enableVertexAttribArray(this._handle);
         this.c.gl.vertexAttribPointer(this._handle, ndim, this.c.gl[gtype],
@@ -368,13 +370,9 @@
         for (var name in program['uniforms']) {
             uniform = program['uniforms'][name];
             var gtype = uniform['gtype'];
-            //var data = get_array(uniform['data']['buffer'], gtype);
-            // TODO: WTF??
-            var data = new Float32Array(Base64Binary.decodeArrayBuffer(uniform['data']['buffer']), 0, 4);
+            var data = get_array(uniform['data']['buffer'], gtype);
             prog.add_uniform(name, gtype, data);
         }
-        
-        //prog.add_uniform('u_color', 'GL_FLOAT_VEC4', [1.,1.,1.,1.]);
         
         prog.draw(program['mode'].toUpperCase());
     }
