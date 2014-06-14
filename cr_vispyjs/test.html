@@ -21,12 +21,33 @@
             
             create_scene(c, gloo_export);
             
-            c.on_mouse_wheel = function(e) {
-                var pos = normalize_pos(c, e.pos);
-                n.zoom([e.delta[1]*.1, e.delta[1]*.1], pos);
+            function update() {
                 c.program.set_data('u_pan', [n.tx, n.ty]);
                 c.program.set_data('u_scale', [n.sx, n.sy]);
                 c.update();
+            }
+            
+            c.on_mouse_move = function(e) {
+                if (e.is_dragging) {
+                    var p = normalize_pos(c, e.pos);
+                    var p_ = normalize_pos(c, e.last_event.pos);
+                    var dx = p[0] - p_[0];
+                    var dy = p[1] - p_[1];
+                    
+                    if (e.button == 0) {
+                        n.pan([dx, dy]);
+                    }
+                    else if (e.button == 2) {
+                        n.zoom([dx, dy], p);
+                    }
+                    update();
+                }
+            }
+            
+            c.on_mouse_wheel = function(e) {
+                var pos = normalize_pos(c, e.pos);
+                n.zoom([e.delta[1]*.1, e.delta[1]*.1], pos);
+                update();
             }
             
         });
