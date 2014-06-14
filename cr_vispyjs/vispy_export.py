@@ -41,8 +41,15 @@ def export_shader(shader):
     return shader.code
     
 def export_data(data):
+    if data is None:
+        return None
     return {'dtype': data.dtype.descr,
             'buffer': _encode_data(data)}
+    
+def export_buffer(buffer):
+    if buffer is None:
+        return None
+    return export_data(buffer._data)
     
 def export_attribute(attr):
     return {'gtype': export_gtype(attr.gtype),
@@ -63,13 +70,16 @@ def export_program(prog, mode=None, index=None):
 
     vs = export_shader(prog.shaders[0])
     fs = export_shader(prog.shaders[1])
-
+    
+    # data = export_buffer(prog._data)
+    
     d = {'attributes': attributes,
          'uniforms': uniforms,
          'vertex_shader': vs,
          'fragment_shader': fs,
          'mode': mode,
          'index': index,
+         # 'data': data,
          }
     return d
 
@@ -84,9 +94,13 @@ def find_draw_info(canvas):
     def _f(p, mode=gl.GL_TRIANGLES, indices=None):
         info[p] = (mode, indices)
     programs = find_programs(canvas)
+    _on_draw = []
     for p in programs:
+        _on_draw.append(getattr(canvas, p).draw)
         setattr(getattr(canvas, p), 'draw', partial(_f, p))
     canvas.on_draw(None)
+    for p, draw in zip(programs, _on_draw):
+        setattr(getattr(canvas, p), 'draw', draw)
     return info
     
 def export_canvas(canvas):
@@ -97,4 +111,6 @@ def export_canvas(canvas):
                                 index=draw_info[p][1],)
                             for p in programs}}
         
-    
+def export_canvas_json(canvas, filename):
+    with open(filename, 'w') as f:
+        f.write(json.dumps(export_canvas(canvas), indent=1))
