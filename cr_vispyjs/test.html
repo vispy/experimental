@@ -1,6 +1,8 @@
 <html>
 <head>
     <title>vispy.js</title>
+    <style type="text/css" rel="stylesheet">
+    </style>
     <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
 
     <!-- JAVASCRIPT UTILS -->
@@ -15,13 +17,15 @@
     function start() {
         document.oncontextmenu = function () { return false; };
     
-        $.getJSON( "test2.json", function(gloo_export) {
+        $.getJSON( "test3.json", function(gloo_export) {
             var c = document.getElementById('vispy-canvas');
             init_gl(c);
+            enable_blend(c);
             init_app(c);
             var n = new navigation();
             
-            create_scene(c, gloo_export);
+            create_scene(c, gloo_export, [1., 1., 1., 1.]);
+            update();
             
             function update() {
                 c.program.set_data('u_pan', [n.tx, n.ty]);

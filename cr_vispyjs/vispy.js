@@ -346,6 +346,11 @@ function init_gl(c) {
     clear(c, [0,0,0,1]);
 }
 
+function enable_blend(c) {
+    c.gl.enable(c.gl.BLEND);
+    c.gl.blendFunc(c.gl.SRC_ALPHA, c.gl.ONE_MINUS_SRC_ALPHA);
+}
+
 function compile_shader(c, type, source) {
     source = "precision mediump float;\n" + source;
     source = source.replace(/\\n/g, "\n")
@@ -617,14 +622,16 @@ function show_program(c, program) {
     program.draw();
 }
 
-function create_scene(c, gloo_export) {
+function create_scene(c, gloo_export, color) {
     for (var name in gloo_export['programs']) {
         program = create_program(c, gloo_export['programs'][name]);
         c[name] = program;
     }
     
+    if (color == undefined)
+        color = [0., 0., 0., 1.];
+    
     c.on_draw = function(e) {
-        color = [0., 0., 0., 1.];  // TODO
         clear(c, color);
         for (var name in gloo_export['programs']) {
             show_program(c, c[name]);
@@ -632,6 +639,6 @@ function create_scene(c, gloo_export) {
     };
     c.update = c.on_draw;
     
-    c.on_draw();
+    //c.on_draw();
 }
 
