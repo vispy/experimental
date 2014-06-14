@@ -96,6 +96,10 @@ function get_pos(c, e) {
     return [e.clientX - c.offsetLeft, e.clientY - c.offsetTop];
 }
 
+function normalize_pos(c, pos) {
+    return [2*pos[0]/c.width-1, 1-2*pos[1]/c.height];
+}
+
 function get_modifiers(e) {
     var modifiers = [];
     if (e.altKey) modifiers.push('alt');
@@ -138,7 +142,7 @@ function gen_mouse_event(c, e, type) {
         'delta': null,
         'press_event': press_event,
         
-        //'last_event': last_event,  // WARNING: recursion problems?
+        'last_event': last_event,  // WARNING: recursion problems?
     }
     return event;
 }
@@ -151,7 +155,7 @@ function gen_key_event(c, e, type) {
         'modifiers': modifiers,
         'key': get_key(e),
         
-        //'last_event': last_event,  // WARNING: recursion problems?
+        'last_event': last_event,  // WARNING: recursion problems?
     }
     return event;
 }
@@ -265,6 +269,52 @@ function init_app(c) {
 }
 
 
+
+// Navigator
+var navigation = function () {
+    this.tx = 0;
+    this.ty = 0;
+    this.tz = 0;
+    this.sx = 1;
+    this.sy = 1;
+    this.sxl = 1;
+    this.syl = 1;
+    this.rx = 0;
+    this.ry = 0;
+}
+
+navigation.prototype.reset = function () {
+    this.tx = 0;
+    this.ty = 0;
+    this.tz = 0;
+    this.sx = 1;
+    this.sy = 1;
+    this.sxl = 1;
+    this.syl = 1;
+    this.rx = 0;
+    this.ry = 0;
+};
+
+navigation.prototype.pan = function (d) {
+    this.tx += d[0] / this.sx;
+    this.ty += d[1] / this.sy;
+}
+
+navigation.prototype.rotate = function (d) {
+    this.rx += d[0];
+    this.ry += d[1];
+}
+
+navigation.prototype.zoom = function (d, p) {
+    if (p == undefined)
+        p = [0., 0.];
+    this.sx *= Math.exp(d[0]);
+    this.sy *= Math.exp(d[1]);
+    this.tx += -p[0] * (1. / this.sxl - 1. / this.sx);
+    this.ty += -p[1] * (1. / this.syl - 1. / this.sy);
+    this.sxl = this.sx;
+    this.syl = this.sy;
+}
 
 
 
