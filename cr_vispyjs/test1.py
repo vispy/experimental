@@ -27,13 +27,14 @@ class Window(app.Canvas):
         self.program['x'] = gloo.VertexBuffer(np.linspace(-1.0, +1.0, n).astype(np.float32))
         self.program['y'] = gloo.VertexBuffer(np.random.uniform(-0.5, +0.5, n).astype(np.float32))
         self.program['u_color'] = np.array((1., 0., 0., 1.), dtype=np.float32)
+        self.index = gloo.IndexBuffer(np.arange(n).astype(np.uint16))
 
     def on_resize(self, event):
         gloo.set_viewport(0, 0, event.size[0], event.size[1])
 
     def on_draw(self, event):
         gloo.clear((0,0,0,0))
-        self.program.draw('line_strip')
+        self.program.draw('line_strip', self.index)
 
 window = Window(n=1000)
 window.show()

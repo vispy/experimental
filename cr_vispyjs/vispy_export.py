@@ -25,6 +25,11 @@ gl_type_list = (
     'GL_SAMPLER_2D',
 )
 gl_typeinfo = {getattr(gl, t): t for t in gl_type_list}
+gl_indexinfo = {
+    np.dtype(np.uint8): 'GL_UNSIGNED_BYTE',
+    np.dtype(np.uint16): 'GL_UNSIGNED_SHORT',
+    np.dtype(np.uint32): 'GL_UNSIGNED_INT',
+}
 
 def _encode_data(data):
     return base64.b64encode(data)
@@ -46,10 +51,10 @@ def export_data(data):
     return {'dtype': data.dtype.descr,
             'buffer': _encode_data(data)}
     
-def export_buffer(buffer):
-    if buffer is None:
-        return None
-    return export_data(buffer._data)
+# def export_buffer(buffer):
+    # if buffer is None:
+        # return None
+    # return export_data(buffer._data)
     
 def export_attribute(attr):
     return {'gtype': export_gtype(attr.gtype),
@@ -71,15 +76,18 @@ def export_program(prog, mode=None, index=None):
     vs = export_shader(prog.shaders[0])
     fs = export_shader(prog.shaders[1])
     
-    # data = export_buffer(prog._data)
+    if index is not None:
+        index = {
+            'gtype': gl_indexinfo[index.data.dtype],
+            'data': export_data(index.data)
+            }
     
     d = {'attributes': attributes,
          'uniforms': uniforms,
+         'index_buffer': index,
          'vertex_shader': vs,
          'fragment_shader': fs,
          'mode': mode,
-         'index': index,
-         # 'data': data,
          }
     return d
 

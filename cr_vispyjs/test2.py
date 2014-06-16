@@ -3,8 +3,8 @@ from vispy import app
 import numpy as np
 import math
 
-m = 20
-n = 1000
+m = 50
+n = 10000
 x = np.tile(np.linspace(-1., 1., n), m)
 y = .1 * np.random.randn(m, n)
 y += np.arange(m).reshape((-1, 1))
@@ -105,6 +105,6 @@ c = Canvas()
 c.show()
 app.run()
 
-# from vispy_export import export_canvas_json
-# export_canvas_json(c, 'test2.json')
+from vispy_export import export_canvas_json
+export_canvas_json(c, 'test2.json')
 

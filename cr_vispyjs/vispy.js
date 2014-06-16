@@ -72,6 +72,10 @@ function get_array(s, vartype) {
         // HACK: we force int32 to be float32 for OpenGL ES
         data = new Float32Array(new Int32Array(data, 0, size));
     }
+    // 16 bits unsigned int
+    else if (vartype.startsWith('GL_UNSIGNED')) {
+        data = new Uint16Array(data, 0, 2*size);
+    }
     return data;
 }
 
@@ -404,7 +408,7 @@ GLObject.prototype.deactivate = function() {
 
 
 function Buffer(c, data, type) {
-    if (typeof(type) == 'undefined')
+    if (type == undefined)
         type = 'ARRAY_BUFFER'
     this.c = c;
     this.type = type;
@@ -413,7 +417,7 @@ function Buffer(c, data, type) {
 Buffer.prototype = new GLObject();
 Buffer.prototype.set_data = function(data) {
     this.data = data;
-    this.nbytes = data.length;
+    this.size = data.length;
 }
 Buffer.prototype._create = function() {
     this._handle = this.c.gl.createBuffer();
@@ -468,7 +472,7 @@ Attribute.prototype._activate = function() {
     gtype = r[1];
     dtype = r[2];
     stride = this.data.stride;
-    this.size = this.data.nbytes / ndim;
+    this.size = this.data.size / ndim;
     
     this.c.gl.enableVertexAttribArray(this._handle);
     this.c.gl.vertexAttribPointer(this._handle, ndim, this.c.gl[gtype],
@@ -586,11 +590,23 @@ Program.prototype.set_data = function(name, data) {
     if (name in this._uniforms)
         this._uniforms[name].set_data(data);
 }
+Program.prototype.add_index = function(gtype, data) {
+    this.index = new Buffer(this.c, data, 'ELEMENT_ARRAY_BUFFER');
+    this.index.dtype = gtype.substr(3);  // Remove `GL_`.
+}
 Program.prototype.draw = function(count) {
     this.activate();
     first = 0;
     count = this._attributes[Object.keys(this._attributes)[0]].size;
-    this.c.gl.drawArrays(this.c.gl[this.mode], first, count);
+    if (this.index == undefined) {
+        this.c.gl.drawArrays(this.c.gl[this.mode], first, count);
+    }
+    else {
+        this.index.activate();
+        this.c.gl.drawElements(this.c.gl[this.mode], this.index.size, 
+                               this.c.gl[this.index.dtype], 0);
+        this.index.deactivate();
+    }
     this.deactivate();
 }
 
@@ -615,6 +631,15 @@ function create_program(c, program_export) {
         var data = get_array(uniform['data']['buffer'], gtype);
         program.add_uniform(name, gtype, data);
     }
+    
+    // Take care of index buffer.
+    var index = program_export['index_buffer'];
+    if (index != undefined) {
+        var gtype = index['gtype'];
+        var index_data = get_array(index['data']['buffer'], gtype);
+        program.add_index(gtype, index_data);
+    }
+    
     return program;
 }
 

@@ -17,14 +17,14 @@
     function start() {
         document.oncontextmenu = function () { return false; };
     
-        $.getJSON( "test3.json", function(gloo_export) {
+        $.getJSON( "test4.json", function(gloo_export) {
             var c = document.getElementById('vispy-canvas');
             init_gl(c);
-            enable_blend(c);
+            //enable_blend(c);
             init_app(c);
             var n = new navigation();
             
-            create_scene(c, gloo_export, [1., 1., 1., 1.]);
+            create_scene(c, gloo_export, [0., 0., 0., 1.]);
             update();
             
             function update() {
