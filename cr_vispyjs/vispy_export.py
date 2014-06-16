@@ -51,11 +51,6 @@ def export_data(data):
     return {'dtype': data.dtype.descr,
             'buffer': _encode_data(data)}
     
-# def export_buffer(buffer):
-    # if buffer is None:
-        # return None
-    # return export_data(buffer._data)
-    
 def export_attribute(attr):
     return {'gtype': export_gtype(attr.gtype),
             'data': export_data(attr.data._data)}

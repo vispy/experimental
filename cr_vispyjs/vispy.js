@@ -74,7 +74,7 @@ function get_array(s, vartype) {
     }
     // 16 bits unsigned int
     else if (vartype.startsWith('GL_UNSIGNED')) {
-        data = new Uint16Array(data, 0, 2*size);
+        data = new Uint16Array(data, 0, Math.floor(data.byteLength / 2));
     }
     return data;
 }
@@ -442,14 +442,22 @@ var gl_typeinfo = {
     'GL_FLOAT_VEC2':    [2, 'FLOAT', 'float32'],
     'GL_FLOAT_VEC3':    [3, 'FLOAT', 'float32'],
     'GL_FLOAT_VEC4':    [4, 'FLOAT', 'float32'],
+    
     'GL_INT':           [1, 'INT', 'int32'],
     'GL_INT_VEC2':      [2, 'INT', 'int32'],
     'GL_INT_VEC3':      [3, 'INT', 'int32'],
     'GL_INT_VEC4':      [4, 'INT', 'int32'],
+    
     'GL_BOOL':          [1, 'BOOL', 'bool'],
     'GL_BOOL_VEC2':     [2, 'BOOL', 'bool'],
     'GL_BOOL_VEC3':     [3, 'BOOL', 'bool'],
-    'GL_BOOL_VEC4':     [4, 'BOOL', 'bool']
+    'GL_BOOL_VEC4':     [4, 'BOOL', 'bool'],
+    
+    'GL_FLOAT_MAT2':     [4, 'FLOAT', 'float32'],
+    'GL_FLOAT_MAT3':     [9, 'FLOAT', 'float32'],
+    'GL_FLOAT_MAT4':     [16, 'FLOAT', 'float32'],
+    
+    'GL_SAMPLER_2D':     [1, 'UNSIGNED_INT', 'uint32'],
 }
 
 function Attribute(c, program, name, gtype) {
@@ -525,7 +533,11 @@ Uniform.prototype._deactivate = function() {
 Uniform.prototype._update = function() {
     if (this.data == undefined)
         return;
-    this.c.gl[this._ufunction](this._handle, this.data);
+    // Handle matrix uniform.
+    if (this._ufunction.indexOf('Matrix') > 0)
+        this.c.gl[this._ufunction](this._handle, false, this.data);
+    else
+        this.c.gl[this._ufunction](this._handle, this.data);
 }
 
 
@@ -603,6 +615,8 @@ Program.prototype.draw = function(count) {
     }
     else {
         this.index.activate();
+        console.log(this.c.gl[this.mode], this.index.size, 
+                               this.c.gl[this.index.dtype], 0);
         this.c.gl.drawElements(this.c.gl[this.mode], this.index.size, 
                                this.c.gl[this.index.dtype], 0);
         this.index.deactivate();

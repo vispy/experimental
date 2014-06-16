@@ -3,8 +3,8 @@ from vispy import app
 import numpy as np
 import math
 
-m = 50
-n = 10000
+m = 25
+n = 5000
 x = np.tile(np.linspace(-1., 1., n), m)
 y = .1 * np.random.randn(m, n)
 y += np.arange(m).reshape((-1, 1))
