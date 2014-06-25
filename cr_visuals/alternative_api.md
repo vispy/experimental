@@ -42,7 +42,7 @@ class MyVisual(Visual):
         self.WOBBLE_PHASE += .1  # automatically update the uniform
 ```
     
-Now, a more complicated example. The complication comes from the fact that:
+Now, a more complicated example: the `DashComponent`. The complication comes from the fact that:
 
   * we need to deal with varying variables,
     
