@@ -44,17 +44,17 @@ class MyVisual(Visual):
     
 Now, a more complicated example. The complication comes from the fact that:
 
-    * we need to deal with varying variables,
+  * we need to deal with varying variables,
     
-    * the component needs to know the distance along the line, which, in the current implementation, requires it to know the position and the current visual transformation.
+  * the component needs to know the distance along the line, which, in the current implementation, requires it to know the position and the current visual transformation.
 
 I imagine that an example like this one motivated the current design where a visual component is a kind of "companion" class to the visual. I'm not sure that it's a good solution. To me, a visual component should really be isolated. I propose the following:
 
-    * The DashComponent accepts a generic float `$distance` variable.
+  * The DashComponent accepts a generic float `$distance` variable.
     
-    * We implement a reusable standalone function that computes the distance along a line (takes a `N*D` array in transformed coordinates).
+  * We implement a reusable standalone function that computes the distance along a line (takes a `N*D` array in transformed coordinates).
     
-    * We let a visual link the `$distance` variable of the component to the distance along the line.
+  * We let a visual link the `$distance` variable of the component to the distance along the line.
     
 Also, for the varying, I propose an interface that abstracts that complication away (but good luck with the implementation! ;)).
     
