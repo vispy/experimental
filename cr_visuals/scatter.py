@@ -1,33 +1,40 @@
+from __future__ import division
+from collections import namedtuple
 import numpy as np
 from math import exp
 
 from vispy import app
 from vispy import gloo
+from vispy.scene.shaders import Function, ModularProgram
+from vispy.scene.visuals import Visual
 
 Point = namedtuple('Point', ['x', 'y'])
 
 PAN_ZOOM = """
     // I'd like to remove that DOLLAR before the function name
     // BUG: I can't put a DOLLAR sign in comment ==> crash
-    vec4 pan_zoom(vec2 position){
+    vec4 $pan_zoom(vec2 position){
         vec2 position_tr = $scale * (position + $pan);
         return vec4(position_tr, 0.0, 1.0);
     }
 """
 
-class PanZoomComponent(object):
+class PanZoomComponent(Function):
     """This is just a convenient class that I want to use with PAN_ZOOM.
     The only convention I'm following is that, for every $variable in PAN_ZOOM,
     there's a self.$variable in this instance.
     """
     def __init__(self):
+        Function.__init__(self, PAN_ZOOM)
         self.pan = Point(0., 0.)
         self.scale = Point(1., 1.)
+        self._update()
         
     def move(self, (dx, dy)):
         """I call this when I want to translate."""
         self.pan = Point(self.pan.x + dx/self.scale.x,
                          self.pan.y + dy/self.scale.y)
+        self._update()
                          
     def zoom(self, (dx, dy), center=Point(0., 0.)):
         """I call this when I want to zoom."""
@@ -36,6 +43,11 @@ class PanZoomComponent(object):
         self.pan = Point(self.pan.x - center.x * (1./self.scale.x - 1./scale.x),
                          self.pan.y + center.y * (1./self.scale.y - 1./scale.y))
         self.scale = scale
+        self._update()
+
+    def _update(self):
+        self['pan'] = ('uniform', 'vec2', self.pan)
+        self['scale'] = ('uniform', 'vec2', self.scale)
 
 
 class MarkerVisual(Visual):
@@ -110,12 +122,17 @@ class MarkerVisual(Visual):
         of trait attributes, such that a user doing
         `visual.position = myndarray` results in an automatic update of the 
         buffer. Here I just set the buffers manually."""
-        self._program['a_position'] = gloo.VertexBuffer(pos)
-        self._program['a_color'] = gloo.VertexBuffer(color)
-        self._program['a_size'] = gloo.VertexBuffer(size)
+        self._pos = pos
+        self._color = color
+        self._size = size
         
     def draw(self):
-        self._program.draw('points')
+        self._program._create()
+        self._program._build()  # attributes / uniforms are not available until program is built
+        self._program['a_position'] = gloo.VertexBuffer(self._pos)
+        self._program['a_color'] = gloo.VertexBuffer(self._color)
+        self._program['a_size'] = gloo.VertexBuffer(self._size)
+        self._program.draw(gloo.gl.GL_POINTS, 'points')
     
 
 class Canvas(app.Canvas):
@@ -140,8 +157,7 @@ class Canvas(app.Canvas):
         # component.$variable. Here, since pan and zoom are tuples,
         # Vispy understands that it has to create two uniforms (u_$variable 
         # for example).
-        self.points._program['transform'] = Function(PAN_ZOOM, 
-                                                     component=self.panzoom)
+        self.points._program['transform'] = self.panzoom
 
     def _normalize((x, y)):
         w, h = float(self.width), float(self.height)
@@ -149,10 +165,10 @@ class Canvas(app.Canvas):
         
     def on_mouse_move(self, event):
         if event.is_dragging:
-            x0, y0 = _normalize(event.press_event.pos)
-            x1, y1 = _normalize(event.last_event.pos)
-            x, y = _normalize(event.pos)
-            dxy = ((x - x1, -(y - y1))
+            x0, y0 = event.press_event.pos
+            x1, y1 = event.last_event.pos
+            x, y = event.pos
+            dxy = ((x - x1) / self.size[0], -(y - y1) / self.size[1])
             button = event.press_event.button
             
             # This just updates my private PanZoom instance. Nothing magic
@@ -174,6 +190,7 @@ class Canvas(app.Canvas):
         gloo.set_viewport(0, 0, self.width, self.height)
 
     def on_draw(self, event):
+        gloo.clear()
         self.points.draw()
 
 if __name__ == '__main__':
