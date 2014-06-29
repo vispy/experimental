@@ -1,8 +1,6 @@
 """
 Basic demonstration of line plotting
 """
-import os, sys
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 import vispy.util.ptime as ptime
 
 import numpy as np
@@ -10,30 +8,27 @@ from OpenGL.GL import *
 from OpenGL.GL import shaders
 #from PyQt4 import QtGui, QtCore, QtOpenGL
 import vispy.app
-import vispy.oogl as oogl
-import vispy.event
+import vispy.gloo as gloo
+import vispy.util.event
 
 #vispy.app.use('pyglet')
 
 
 vertex_shader = """
-#version 120
-
-attribute vec3 in_position;
+attribute vec2 in_position;
 uniform mat4 transform;
 
 void main(void) 
 {
     gl_Position = transform * vec4(
         in_position,
+        0.0, 
         1.0
         );
 }
 """
 
 fragment_shader = """
-#version 120
-
 uniform vec4 color;
 
 void main(void) 
@@ -45,41 +40,34 @@ void main(void)
 class PlotLine:
     def __init__(self, pos, color, width):
         self.data = np.empty(pos.shape[0], dtype=[
-            ('pos', pos.dtype, pos.shape[-1]),
+            ('pos', np.float32, 2),
+            ('color', np.float32, 4),
             ])
-        self.data['pos'] = pos
-        self.color = color
+        self.program = gloo.Program(vertex_shader, fragment_shader)
+        self.vbo = gloo.VertexBuffer(self.data)
+        self.set_data(pos)
+        self.set_color(color)
+        #self.data['pos'] = pos
+        #self.color = color
         self.width = width
         self.transform = np.eye(4,dtype=np.float32)
-        self.vbo = None
-        
-    def init_gl(self):
-        self.program = oogl.ShaderProgram(
-            oogl.VertexShader(vertex_shader),
-            oogl.FragmentShader(fragment_shader),
-            )
-            
-        self.vbo = oogl.VertexBuffer(self.data)
         
     def set_data(self, data):
-        if self.vbo is None:
-            print('trying to set_data before gl init')
-            return
-        #self.vbo.bind()
         self.data['pos'][:] = data
         self.vbo.set_data(self.data)
-        #self.vbo.unbind()
+        self.program['in_position'] = self.vbo['pos']
+
+    def set_color(self, color):
+        try:
+            self.program['color'] = color
+        except:
+            print(self.color)
+            raise
+        
         
     def draw(self, transform):
-        with self.program:
-            
-            self.program.uniforms['transform'] = np.dot(self.transform, transform)
-            self.program.attributes['in_position'] = self.vbo['pos']
-            try:
-                self.program.uniforms['color'] = self.color
-            except:
-                print(self.color)
-                raise
+        try:
+            self.program['transform'] = np.dot(self.transform, transform)
             
             glEnable(GL_LINE_SMOOTH)
             glEnable(GL_BLEND)
@@ -87,11 +75,12 @@ class PlotLine:
             glBlendFunc(GL_SRC_ALPHA, GL_ONE)
             glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
             glLineWidth(self.width)
-
-            glDrawArrays(GL_LINE_STRIP, 0, self.data.shape[0])
-
-            glBindBuffer(GL_ARRAY_BUFFER, 0)
-        #glUseProgram(0)
+            self.program.draw(GL_LINE_STRIP)
+        except:
+            import sys, os
+            print("=== Exiting due to paint error: ===")
+            sys.excepthook(*sys.exc_info())
+            os._exit(1)
         
 
 class Canvas(vispy.app.Canvas):
@@ -113,23 +102,23 @@ class Canvas(vispy.app.Canvas):
         
         self.last_pos = None
         
-        self.geometry = None, None, 800, 800    #self.resize(800,800)
+        self.size = (800, 800)
         self.fps = 0.0
         self.last_draw = None
         self.fps_iter = 0
         self.show()
         
-    def on_initialize(self, ev):
-        glClearColor(0.0, 0.0, 0.0, 0.0)
-        for visual in self.visuals:
-            visual.init_gl()
+    #def on_initialize(self, ev):
+        #glClearColor(0.0, 0.0, 0.0, 0.0)
+        #for visual in self.visuals:
+            #visual.init_gl()
         
     def on_resize(self, ev):
         glViewport(0, 0, *ev.size)
 
     def on_paint(self, ev):
         glClear(GL_COLOR_BUFFER_BIT)
-        x,y,width,height = self.geometry
+        width,height = self.size
         transform = np.array([
             [self.zoom,0,0,0], 
             [0,self.zoom,0,0], 
@@ -138,7 +127,7 @@ class Canvas(vispy.app.Canvas):
             ], dtype=np.float32)
         for visual in self.visuals:
             visual.draw(transform)
-        self.swap_buffers()
+        #self.swap_buffers()
         
         now = ptime.time()
         if self.last_draw is None:
@@ -160,7 +149,7 @@ class Canvas(vispy.app.Canvas):
     def on_mouse_move(self, ev):
         if self.last_pos is None:
             return
-        x,y,w,h = self.geometry
+        w,h = self.size
         scale = (2./w, 2./h)
         self.pan = [
             self.pan[0] + scale[0] * (ev.pos[0] - self.last_pos[0]),
@@ -187,10 +176,10 @@ class Canvas(vispy.app.Canvas):
 
         
 import vispy.util.ptime as ptime        
-class SmoothWheelEmitter(vispy.event.EventEmitter):
+class SmoothWheelEmitter(vispy.util.event.EventEmitter):
     """ Mouse wheel smoothing implemented as emitter """
     def __init__(self, source):
-        vispy.event.EventEmitter.__init__(self,
+        vispy.util.event.EventEmitter.__init__(self,
                                           source=source,
                                           type='smooth_wheel',
                                           event_class=vispy.app.canvas.MouseEvent)
@@ -222,9 +211,9 @@ class SmoothWheelEmitter(vispy.event.EventEmitter):
 
 
 
-class FrameRateLimiter(vispy.event.EventEmitter):
+class FrameRateLimiter(vispy.util.event.EventEmitter):
     def __init__(self, source, limit=60):
-        vispy.event.EventEmitter.__init__(self, source, type='limited_paint')
+        vispy.util.event.EventEmitter.__init__(self, source, type='limited_paint')
         source.events.paint.connect(self.input_event)
         self._interval = 1.0 / limit
         self.timer = vispy.app.Timer(connect=self.timeout)
@@ -255,7 +244,7 @@ if __name__ == '__main__':
     import scipy.ndimage as ndi
     
     # Generate M trials of signal
-    M = 500
+    M = 100
     N = 10000
     pos = np.empty((M, N, 2), dtype=np.float32)
     pos[:,:,0] = np.linspace(-10, 10., N).reshape(1,N)
@@ -288,14 +277,14 @@ if __name__ == '__main__':
     def update(ev):
         global plot_ptr, data_ptr, plots, pos
         plots[plot_ptr].set_data(pos[data_ptr])
-        tr = np.eye(4,dtype=np.float32)
+        tr = np.eye(4, dtype=np.float32)
         tr[3,0] = -trig[data_ptr] * 20./float(N)
         plots[plot_ptr].transform = tr
         for i in range(len(plots)):
             alpha = 0.5 * ((len(plots)-float(i))/len(plots))**8
-            plots[(plot_ptr-i)%len(plots)].color = (.1,1.0,.1,alpha)
-        data_ptr = (data_ptr+1) % M
-        plot_ptr = (plot_ptr+1) % len(plots)
+            plots[(plot_ptr - i) % len(plots)].set_color((.1, 1.0, .1, alpha))
+        data_ptr = (data_ptr + 1) % M
+        plot_ptr = (plot_ptr + 1) % len(plots)
         win.update()
         
     @win.events.key_press.connect
