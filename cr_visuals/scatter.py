@@ -8,8 +8,6 @@ from vispy import gloo
 from vispy.scene.shaders import Function, ModularProgram
 from vispy.scene.visuals import Visual
 
-Point = namedtuple('Point', ['x', 'y'])
-
 PAN_ZOOM = """
     // I'd like to remove that DOLLAR before the function name
     // BUG: I can't put a DOLLAR sign in comment ==> crash
@@ -26,22 +24,22 @@ class PanZoomComponent(Function):
     """
     def __init__(self):
         Function.__init__(self, PAN_ZOOM)
-        self.pan = Point(0., 0.)
-        self.scale = Point(1., 1.)
+        self.pan = (0., 0.)
+        self.scale = (1., 1.)
         self._update()
         
     def move(self, (dx, dy)):
         """I call this when I want to translate."""
-        self.pan = Point(self.pan.x + dx/self.scale.x,
-                         self.pan.y + dy/self.scale.y)
+        self.pan = (self.pan[0] + dx/self.scale[0],
+                         self.pan[1] + dy/self.scale[1])
         self._update()
                          
-    def zoom(self, (dx, dy), center=Point(0., 0.)):
+    def zoom(self, (dx, dy), center=(0., 0.)):
         """I call this when I want to zoom."""
-        scale = Point(self.scale.x * exp(2.5*dx),
-                      self.scale.y * exp(2.5*dy))
-        self.pan = Point(self.pan.x - center.x * (1./self.scale.x - 1./scale.x),
-                         self.pan.y + center.y * (1./self.scale.y - 1./scale.y))
+        scale = (self.scale[0] * exp(2.5*dx),
+                      self.scale[1] * exp(2.5*dy))
+        self.pan = (self.pan[0] - center[0] * (1./self.scale[0] - 1./scale[0]),
+                         self.pan[1] + center[1] * (1./self.scale[1] - 1./scale[1]))
         self.scale = scale
         self._update()
 
@@ -127,6 +125,7 @@ class MarkerVisual(Visual):
         self._size = size
         
     def draw(self):
+        self.set_options()
         self._program._create()
         self._program._build()  # attributes / uniforms are not available until program is built
         self._program['a_position'] = gloo.VertexBuffer(self._pos)
@@ -134,9 +133,13 @@ class MarkerVisual(Visual):
         self._program['a_size'] = gloo.VertexBuffer(self._size)
         self._program.draw(gloo.gl.GL_POINTS, 'points')
     
-
+    
 class Canvas(app.Canvas):
 
+    def _normalize(self, (x, y)):
+        w, h = float(self.size[0]), float(self.size[1])
+        return x/(w/2.)-1., y/(h/2.)-1.
+    
     def __init__(self):
         app.Canvas.__init__(self, close_keys='escape')
 
@@ -159,31 +162,27 @@ class Canvas(app.Canvas):
         # for example).
         self.points._program['transform'] = self.panzoom
 
-    def _normalize((x, y)):
-        w, h = float(self.width), float(self.height)
-        return x/(w/2.)-1., y/(h/2.)-1.
-        
     def on_mouse_move(self, event):
         if event.is_dragging:
-            x0, y0 = event.press_event.pos
-            x1, y1 = event.last_event.pos
-            x, y = event.pos
-            dxy = ((x - x1) / self.size[0], -(y - y1) / self.size[1])
+            x0, y0 = self._normalize(event.press_event.pos)
+            x1, y1 = self._normalize(event.last_event.pos)
+            x, y = self._normalize(event.pos)
+            dxy = ((x - x1), -(y - y1))
+            center = (x0, y0)
             button = event.press_event.button
             
-            # This just updates my private PanZoom instance. Nothing magic
-            # happens.
             if button == 1:
                 self.panzoom.move(dxy)
             elif button == 2:
-                self.panzoom.zoom(dxy)
+                self.panzoom.zoom(dxy, center=center)
                 
-            # The magic happens here. self.on_draw() is called, so 
-            # self.points.draw() is called. The two variables in the transform
-            # hook are bound to self.panzoom.pan and self.panzoom.zoom, so
-            # Vispy will automatically fetch those two values and update
-            # the two corresponding uniforms.
             self.update()
+        
+    def on_mouse_wheel(self, event):
+        c = event.delta[1] * .1
+        x, y = self._normalize(event.pos)
+        self.panzoom.zoom((c, c), center=(x, y))
+        self.update()
         
     def on_resize(self, event):
         self.width, self.height = event.size
