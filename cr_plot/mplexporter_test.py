@@ -1,14 +1,35 @@
+import string
+import random
+
 from mplexporter.exporter import Exporter
 from mplexporter.renderers import Renderer, FakeRenderer, FullFakeRenderer
 
-import matplotlib
-# matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-
 import numpy as np
 
-from plot import PlotCanvas, MarkerVisual
+from plot import PlotCanvas, MarkerVisual, LineVisual
 
+randstr = lambda: ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(8))
+
+_color_dict = dict(r='#FF0000',
+                   g='#00FF00',
+                   b='#0000FF',
+                   white='#FFFFFF',
+                   silver='#C0C0C0',
+                   gray='#808080',
+                   black='#000000',
+                   red='#FF0000',
+                   maroon='#800000',
+                   yellow='#FFFF00',
+                   olive='#808000',
+                   lime='#00FF00',
+                   green='#008000',
+                   aqua='#00FFFF',
+                   teal='#008080',
+                   blue='#0000FF',
+                   navy='#000080',
+                   fuchsia='#FF00FF',
+                   purple='#800080',
+                   )
 
 def _string_to_rgb(color):
     """Convert user string or hex color to color array (length 3 or 4)"""
@@ -123,12 +144,18 @@ class VispyRenderer(Renderer):
         mplobj : matplotlib object
             the matplotlib plot element which generated this marker collection
         """
+        
         pos = data.astype(np.float32)
         n = pos.shape[0]
         
+        # TODO: uniform instead
         color = np.tile(_string_to_rgb(style['facecolor']), (n, 1)).astype(np.float32)
         
+        # TODO: uniform instead
         size = np.ones(n, np.float32) * style['markersize']
+        
+        # TODO: marker style, linewidth, linecolor, etc.
+        # TODO: take 'coordinates' into account
         
         self.canvas.add_visual(label, 
             MarkerVisual(pos=pos, color=color, size=size))
@@ -168,7 +195,13 @@ class VispyRenderer(Renderer):
         mplobj : matplotlib object
             the matplotlib plot element which generated this path
         """
-        print "path"
+        pos = data.astype(np.float32)
+        n = pos.shape[0]
+        
+        color = np.array(_string_to_rgb(style['edgecolor']), dtype=np.float32)
+        
+        self.canvas.add_visual('line'+randstr(), 
+            LineVisual(pos=pos, color=color))
         
     def draw_path_collection(self, paths, path_coordinates, path_transforms,
                              offsets, offset_coordinates, offset_order,
@@ -225,14 +258,20 @@ def show_vispy(fig):
         
 if __name__ == '__main__':
     
-    n = 1000
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+
+    n = 100
+    
     pos = 0.25 * np.random.randn(n, 2).astype(np.float32)
     
+    x = np.linspace(-1.0, +1.0, n)
+    y = np.random.uniform(-0.5, +0.5, n)
     
     fig, ax = plt.subplots()
-    ax.plot(pos[:,0], pos[:,1], 'o')
-    # ax.scatter(x, y,)
-    plt.show()
+    ax.plot(x, y, 'r')
+    ax.plot(pos[:,0], pos[:,1], 'ob')
     
     show_vispy(fig)
     

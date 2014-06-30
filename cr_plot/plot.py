@@ -109,8 +109,50 @@ class MarkerVisual(Visual):
         self._program['a_color'] = gloo.VertexBuffer(self._color)
         self._program['a_size'] = gloo.VertexBuffer(self._size)
         self._program.draw(gloo.gl.GL_POINTS, 'points')
+
+
+class LineVisual(Visual):
+    VERTEX_SHADER = """
+        #version 120
+        vec4 transform(vec4);
+        attribute vec2 a_position;
+        
+        void main (void)
+        {
+            gl_Position = transform(vec4(a_position, 0., 1.0));
+        }
+    """
+
+    FRAGMENT_SHADER = """
+        #version 120
+        uniform vec3 u_color;
+        void main()
+        {
+            gl_FragColor = vec4(u_color.xyz, 1.);
+        }
+    """
     
-    
+    def __init__(self, pos=None, color=None):
+        self._program = ModularProgram(self.VERTEX_SHADER, self.FRAGMENT_SHADER)
+        self.set_data(pos=pos, color=color)
+        
+    def set_options(self):
+        gloo.set_state(clear_color=(1, 1, 1, 1), blend=True, 
+                       blend_func=('src_alpha', 'one_minus_src_alpha'))
+
+    def set_data(self, pos=None, color=None):
+        self._pos = pos
+        self._color = color
+        
+    def draw(self):
+        self.set_options()
+        self._program._create()
+        self._program._build()  # attributes / uniforms are not available until program is built
+        self._program['a_position'] = gloo.VertexBuffer(self._pos)
+        self._program['u_color'] = self._color
+        self._program.draw(gloo.gl.GL_LINE_STRIP, 'line_strip')
+
+
 class PlotCanvas(app.Canvas):
     def _normalize(self, (x, y)):
         w, h = float(self.size[0]), float(self.size[1])
@@ -170,13 +212,22 @@ class PlotCanvas(app.Canvas):
 
 
 if __name__ == '__main__':
-    n = 10000
+    ax = PlotCanvas()
     
+    n = 1000
     pos = 0.25 * np.random.randn(n, 2).astype(np.float32)
     color = np.random.uniform(0, 1, (n, 3)).astype(np.float32)
     size = np.random.uniform(2, 12, (n, 1)).astype(np.float32)
     
-    ax = figure()
-    ax.scatter(pos, color=color, size=size)
+    # ax.points = MarkerVisual(pos, color=color, size=size)
+    
+    
+    
+    x = np.linspace(-1.0, +1.0, n).astype(np.float32)
+    y = np.random.uniform(-0.5, +0.5, n).astype(np.float32)
+    pos = np.c_[x,y]
+    
+    ax.line = LineVisual(pos, color=(1., 0., 0.))
+    
     
     ax.show()
