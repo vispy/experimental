@@ -12,7 +12,7 @@ PAN_ZOOM = """
     // I'd like to remove that DOLLAR before the function name
     // BUG: I can't put a DOLLAR sign in comment ==> crash
     vec4 $pan_zoom(vec2 position){
-        vec2 position_tr = $scale * (position + $pan);
+        vec2 position_tr = $scale * position + $pan;
         return vec4(position_tr, 0.0, 1.0);
     }
 """
@@ -31,20 +31,21 @@ class PanZoomComponent(Function):
     def move(self, (dx, dy)):
         """I call this when I want to translate."""
         self.pan = (self.pan[0] + dx/self.scale[0],
-                         self.pan[1] + dy/self.scale[1])
+                    self.pan[1] + dy/self.scale[1])
         self._update()
                          
     def zoom(self, (dx, dy), center=(0., 0.)):
         """I call this when I want to zoom."""
         scale = (self.scale[0] * exp(2.5*dx),
-                      self.scale[1] * exp(2.5*dy))
+                 self.scale[1] * exp(2.5*dy))
         self.pan = (self.pan[0] - center[0] * (1./self.scale[0] - 1./scale[0]),
-                         self.pan[1] + center[1] * (1./self.scale[1] - 1./scale[1]))
+                    self.pan[1] + center[1] * (1./self.scale[1] - 1./scale[1]))
         self.scale = scale
         self._update()
 
     def _update(self):
-        self['pan'] = ('uniform', 'vec2', self.pan)
+        self['pan'] = ('uniform', 'vec2', (self.pan[0]*self.scale[0],
+                                           self.pan[1]*self.scale[1]))
         self['scale'] = ('uniform', 'vec2', self.scale)
 
 
