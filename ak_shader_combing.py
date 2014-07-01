@@ -339,10 +339,10 @@ class Transform(object):
 transforms = [Transform(), Transform(), Transform(), Transform()]
 
 code = Frag_template.new()
-ob = position()  # Function object
+ob = Position.new()
 for trans in transforms:
-    ob = ob(trans.func)
+    ob = trans.func(ob)
 code['$position']  = ob
 print(code)
-    
+
     
