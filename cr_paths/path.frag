@@ -63,7 +63,6 @@ join( in int type, in float d, in vec2 segment, in vec2 texcoord, in vec2 miter,
 
 
 // Uniforms
-uniform mat4 u_M, u_V, u_P;
 uniform sampler2D u_dash_atlas;
 
 // Varying

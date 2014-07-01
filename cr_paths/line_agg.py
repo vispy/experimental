@@ -114,16 +114,12 @@ closed = 0.
 V,I,length = bake(vtype, vertices, closed=closed)
 
 uniforms = dict(
-    u_view = np.eye(4).astype( np.float32 ),
-    u_matrix = np.eye(4).astype( np.float32 ),
     closed = closed,
     color = (0.,0.,0.,1),
-    linewidth = 10,
+    linewidth = 10.,
     antialias = 1.0,
     miter_limit = 4.0,
-    translate = (300.,300.) ,
     scale = 300,
-    theta = 0.0,
     dash_phase = 0.0,
     length=length,
     dash_index=dash_index,
@@ -160,7 +156,7 @@ class Canvas(app.Canvas):
     def on_resize(self, event):
         self.width, self.height = event.size
         gloo.set_viewport(0, 0, self.width, self.height)
-        self.program['u_proj'] = orthographic( 0, self.width, 0, self.height, -1, +1 ),
+        self.program['u_proj'] = orthographic( -self.width//2, self.width//2, -self.height//2, self.height//2, -1, +1 ),
 
     def on_draw(self, event):
         gloo.clear(color=(1.0, 1.0, 1.0, 1.0))

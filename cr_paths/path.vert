@@ -24,14 +24,12 @@ void rotate( in vec2 v, in float alpha, out vec2 result )
 
 
 // Uniforms
-uniform mat4 u_matrix;
-uniform mat4 u_view;
+//uniform mat4 u_matrix;
+//uniform mat4 u_view;
 uniform mat4 u_proj;
 
 uniform vec4 color;
-uniform vec2 translate;
 uniform float scale;
-uniform float theta;
 uniform float linewidth;
 uniform float antialias;
 uniform vec2 linecaps;
@@ -71,46 +69,23 @@ varying vec2  v_dash_caps;
 varying float v_closed;
 void main()
 {
-    // Extract uniforms from uniform texture
-    //float size = u_uniforms_shape.x - 1.0;
-    //float index = a_index/(u_uniforms_shape.y-1.0);
-    //int i = 0;
-    //vec4 _uniform;
-
-    // Get color(4)
-    //_uniform = texture2D(u_uniforms, vec2(float(i++)/size,index));
     v_color = color;
 
-    // Get translate(2), scale(1), theta(1)
-    //_uniform = texture2D(u_uniforms, vec2(float(i++)/size,index));
-    //vec2  translate = _uniform.xy;
-    //float scale     = _uniform.z;
-    //float theta     = _uniform.w;
-
-    // Get linewidth(1), antialias(1), linecaps(2)
-    //_uniform = texture2D(u_uniforms, vec2(float(i++)/size,index));
     v_linewidth = linewidth;
     v_antialias = antialias;
     v_linecaps  = linecaps;
 
-    // Get linejoin(1), miterlimit(1), length(1), dash_phase(1)
-    //_uniform = texture2D(u_uniforms, vec2(float(i++)/size,index));
     v_linejoin    = linejoin;
     v_miter_limit = miter_limit;
     v_length      = length;
     v_dash_phase  = dash_phase;
 
-    // Get dash_period(1), dash_index(1), dash_caps(2)
-    //_uniform = texture2D(u_uniforms, vec2(float(i++)/size,index));
     v_dash_period = dash_period;
     v_dash_index  = dash_index;
     v_dash_caps   = dash_caps;
 
-    // Get closed(1)
-    //_uniform = texture2D(u_uniforms, vec2(float(i++)/size,index));
     v_closed = closed;
     bool closed = (v_closed > 0.0);
-
 
     // Attributes to varyings
     v_angles  = a_angles;
@@ -121,7 +96,6 @@ void main()
     // and a modified alpha
     v_color.a = min(v_linewidth, v_color.a);
     v_linewidth = max(v_linewidth, 1.0);
-
 
     // If color is fully transparent we just will discard the fragment anyway
     if( v_color.a <= 0.0 )
@@ -258,14 +232,6 @@ void main()
     }
 
     v_texcoord = vec2( u, v*w );
-
-    // Rotation
-    float c = cos(theta);
-    float s = sin(theta);
-    position.xy = vec2( c*position.x - s*position.y,
-                        s*position.x + c*position.y );
-    // Translation
-    position +=  translate;
-
-    gl_Position = (u_proj*(u_view*u_matrix))*vec4(position,0.0,1.0);
+    
+    gl_Position = u_proj*vec4(position, 0.0, 1.0);
 }
