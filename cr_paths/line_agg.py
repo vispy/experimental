@@ -98,13 +98,13 @@ vtype = np.dtype( [('a_position', 'f4', 2),
                     ('a_texcoord', 'f4', 2) ])
 
 x = np.linspace(-1., 1., 1000)
-y = .5*np.sin(20*x)
+y = .25*np.sin(15*x)
 vertices = np.c_[x,y]
             
 dash_pattern = 'solid'
 linecaps = ('round','round')
 dash_caps = ('round', 'round')
-linejoin = 'bevel'
+linejoin = 'round'
 
 da = DashAtlas()
 dash_index, dash_period = da[dash_pattern]
@@ -121,7 +121,7 @@ uniforms = dict(
     linewidth = 10,
     antialias = 1.0,
     miter_limit = 4.0,
-    translate = (400.,300.) ,
+    translate = (300.,300.) ,
     scale = 300,
     theta = 0.0,
     dash_phase = 0.0,
@@ -145,7 +145,7 @@ FRAG_SHADER = open('path.frag', 'r').read()
 
 class Canvas(app.Canvas):
     def __init__(self):
-        app.Canvas.__init__(self, size=(800, 600), close_keys='escape')
+        app.Canvas.__init__(self, size=(600, 600), close_keys='escape')
         self.program = gloo.Program(VERT_SHADER, FRAG_SHADER)
         self.program.bind(gloo.VertexBuffer(V))
         for n, v in uniforms.iteritems():
