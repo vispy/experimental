@@ -299,3 +299,50 @@ print(code)
 
 # Yay, we can easil obtain the uniform names via their original function object
 print(t1.uniform('u_scale'), t3.uniform('u_scale'))
+
+
+##
+
+Frag_template = Function("""
+void main (void)
+{
+    gl_Position = $position;
+}
+""")
+
+TransformScale = Function("""
+uniform float u_scale;
+vec4 transform_scale(vec4 pos)
+{
+    pos.xyz *= u_scale;
+    return pos;
+}
+""")
+
+Position = Function("""
+attribute vec4 a_position;
+vec4 position() {  return a_position; }
+""")
+
+class Transform(object):
+    def __init__(self):
+        # Equivalent methods to create new function object
+        self.func = Function(TransformScale, name='trans'+hex(id(self)))
+        #self.func = TransformScale.new(name='trans'+hex(id(self))
+    
+    def set_scale(self):
+        name = 'u_scale'
+        real_name = self.func.uniform(name)
+        # .... set uniform using that name
+
+
+transforms = [Transform(), Transform(), Transform(), Transform()]
+
+code = Frag_template.new()
+ob = position()  # Function object
+for trans in transforms:
+    ob = ob(trans.func)
+code['$position']  = ob
+print(code)
+    
+    
