@@ -5,7 +5,7 @@
 # -----------------------------------------------------------------------------
 """
 An ArrayList is a strongly typed list whose type can be anything that can be
-interpreted as a numpy data type. 
+interpreted as a numpy data type.
 
 Example
 -------
@@ -17,8 +17,8 @@ Example
 [0 1 2 3 4 5 6 7 8 9]
 
 You can add several items at once by specifying common or individual size: a
-single scalar means all items are the same size while a list of sizes is used to
-specify individual item sizes.
+single scalar means all items are the same size while a list of sizes is used
+to specify individual item sizes.
 
 Example
 -------
@@ -28,18 +28,18 @@ Example
 [ [0 1 2] [3 4 5] [6 7 8 9] ]
 >>> print L.data
 [0 1 2 3 4 5 6 7 8 9]
-
 """
 import numpy as np
 
 
 class ArrayList(object):
     """
-    An ArrayList is a strongly typed list whose type can be anything that can be
-    interpreted as a numpy data type.
+    An ArrayList is a strongly typed list whose type can be anything that can
+    be interpreted as a numpy data type.
     """
 
-    def __init__(self, data=None, itemsize=None, dtype=float, sizeable=True, writeable=True):
+    def __init__(self, data=None, itemsize=None, dtype=float,
+                 sizeable=True, writeable=True):
         """ Create a new buffer using given data and sizes or dtype
 
         Parameters
@@ -73,23 +73,24 @@ class ArrayList(object):
         self._writeable = writeable
 
         if data is not None:
-            if type(data) in [list,tuple]:
-                if type(data[0]) in [list,tuple]:
+            if type(data) in [list, tuple]:
+                if type(data[0]) in [list, tuple]:
                     itemsize = [len(l) for l in data]
                     data = [item for sublist in data for item in sublist]
             self._data = np.array(data, copy=False)
             self._size = self._data.size
 
             # Default is one group with all data inside
-            _itemsize = np.ones(1)*self._data.size
+            _itemsize = np.ones(1) * self._data.size
 
             # Check item sizes and get items count
             if itemsize is not None:
                 if type(itemsize) is int:
                     if (self._size % itemsize) != 0:
                         raise ValueError("Cannot partition data as requested")
-                    self._count = self._size//itemsize
-                    _itemsize = np.ones(self._count,dtype=int)*(self._size//self._count)
+                    self._count = self._size // itemsize
+                    _itemsize = np.ones(
+                        self._count, dtype=int) * (self._size // self._count)
                 else:
                     _itemsize = np.array(itemsize, copy=False)
                     self._count = len(itemsize)
@@ -99,24 +100,21 @@ class ArrayList(object):
                 self._count = 1
 
             # Store items
-            self._items = np.zeros((self._count,2),int)
+            self._items = np.zeros((self._count, 2), int)
             C = _itemsize.cumsum()
-            self._items[1:,0] += C[:-1]
-            self._items[0:,1] += C
+            self._items[1:, 0] += C[:-1]
+            self._items[0:, 1] += C
 
         else:
             self._data = np.zeros(512, dtype=dtype)
-            self._items = np.zeros((64,2), dtype=int)
+            self._items = np.zeros((64, 2), dtype=int)
             self._size = 0
             self._count = 0
-
 
     @property
     def data(self):
         """ The array's elements, in memory. """
         return self._data[:self._size]
-
-
 
     @property
     def size(self):
@@ -126,29 +124,23 @@ class ArrayList(object):
     @property
     def itemsize(self):
         """ Individual item sizes """
-        return self._items[:self._count,1] - self._items[:self._count,0]
-
+        return self._items[:self._count, 1] - self._items[:self._count, 0]
 
     @property
     def dtype(self):
         """ Describes the format of the elements in the buffer. """
         return self._data.dtype
 
-
-
     def __len__(self):
         """ x.__len__() <==> len(x) """
         return self._count
 
-
-
     def __str__(self):
         s = '[ '
-        for item in self: s += str(item) + ' '
+        for item in self:
+            s += str(item) + ' '
         s += ']'
         return s
-
-
 
     def __getitem__(self, key):
         """ x.__getitem__(y) <==> x[y] """
@@ -159,21 +151,21 @@ class ArrayList(object):
             if key < 0 or key >= len(self):
                 raise IndexError("Tuple index out of range")
             dstart = self._items[key][0]
-            dstop  = self._items[key][1]
+            dstop = self._items[key][1]
             return self._data[dstart:dstop]
 
         elif type(key) is slice:
             istart, istop, step = key.indices(len(self))
             if istart > istop:
-                istart,istop = istop,istart
+                istart, istop = istop, istart
             dstart = self._items[istart][0]
             if istart == istop:
                 dstop = dstart
             else:
-                dstop  = self._items[istop-1][1]
+                dstop = self._items[istop - 1][1]
             return self._data[dstart:dstop]
 
-        elif isinstance(key,str):
+        elif isinstance(key, str):
             return self._data[key][:self._size]
 
         elif key is Ellipsis:
@@ -181,7 +173,6 @@ class ArrayList(object):
 
         else:
             raise TypeError("List indices must be integers")
-
 
     def __setitem__(self, key, data):
         """ x.__setitem__(i, y) <==> x[i]=y """
@@ -195,26 +186,24 @@ class ArrayList(object):
             if key < 0 or key > len(self):
                 raise IndexError("List assignment index out of range")
             dstart = self._items[key][0]
-            dstop  = self._items[key][1]
+            dstop = self._items[key][1]
             self._data[dstart:dstop] = data
 
         elif type(key) is slice:
             istart, istop, step = key.indices(len(self))
-            if istart > istop:
-                istart,istop = istop,istart
             if istart == istop:
-                dstart = self._items[key][0]
-                dstop  = self._items[key][1]
-                self._data[dstart:dstop] = data
+                return
+            if istart > istop:
+                istart, istop = istop, istart
+            if istart > len(self) or istop > len(self):
+                raise IndexError("Can only assign iterable")
+            dstart = self._items[istart][0]
+            if istart == istop:
+                dstop = dstart
             else:
-                if istart > len(self) or istop > len(self):
-                    raise IndexError("Can only assign iterable")
-                dstart = self._items[istart][0]
-                if istart == istop:
-                    dstop = dstart
-                else:
-                    dstop  = self._items[istop-1][1]
-                self._data[dstart:dstop] = data
+                dstop = self._items[istop - 1][1]
+            print dstart,dstop
+            self._data[dstart:dstop] = data
 
         elif key is Ellipsis:
             self.data[...] = data
@@ -224,8 +213,6 @@ class ArrayList(object):
 
         else:
             raise TypeError("List assignment indices must be integers")
-
-
 
     def __delitem__(self, key):
         """ x.__delitem__(y) <==> del x[y] """
@@ -239,43 +226,42 @@ class ArrayList(object):
                 key += len(self)
             if key < 0 or key > len(self):
                 raise IndexError("List deletion index out of range")
-            istart, istop = key, key+1
-            dstart,dstop = self._items[key]
+            istart, istop = key, key + 1
+            dstart, dstop = self._items[key]
 
         # Deleting several items
         elif type(key) is slice:
             istart, istop, step = key.indices(len(self))
             if istart > istop:
-                istart,istop = istop,istart
+                istart, istop = istop, istart
             if istart == istop:
                 return
             dstart = self._items[istart][0]
-            dstop  = self._items[istop-1][1]
+            dstop = self._items[istop - 1][1]
 
         elif key is Ellipsis:
             istart = 0
             istop = len(self)
             dstart = 0
-            dstop  = self.size
+            dstop = self.size
         # Error
         else:
             raise TypeError("List deletion indices must be integers")
 
         # Remove data
-        size = self._size - (dstop-dstart)
-        self._data[dstart:dstart+size] = self._data[dstop:dstop+size]
-        self._size -= dstop-dstart
+        size = self._size - (dstop - dstart)
+        self._data[
+            dstart:dstart + self._size - dstop] = self._data[dstop:self._size]
+        self._size -= dstop - dstart
 
         # Remove corresponding items
         size = self._count - istop
-        self._items[istart:istart+size] = self._items[istop:istop+size]
+        self._items[istart:istart + size] = self._items[istop:istop + size]
 
         # Update other items
-        size = dstop-dstart
-        self._items[istart:istop+size+1] -= size, size
-        self._count -= istop-istart
-
-
+        size = dstop - dstart
+        self._items[istart:istop + size + 1] -= size, size
+        self._count -= istop - istart
 
     def insert(self, index, data, itemsize=None):
         """ Insert data before index
@@ -302,13 +288,13 @@ class ArrayList(object):
         """
 
         if not self._sizeable:
-            raise RuntimeError("List is not sizeable")
+            raise AttributeError("List is not sizeable")
 
-        if type(data) in [list,tuple] and type(data[0]) in [list,tuple]:
+        if type(data) in [list, tuple] and type(data[0]) in [list, tuple]:
             itemsize = [len(l) for l in data]
             data = [item for sublist in data for item in sublist]
 
-        data = np.array(data,copy=False).ravel()
+        data = np.array(data, copy=False).ravel()
         size = data.size
 
         # Check item size and get item number
@@ -316,10 +302,10 @@ class ArrayList(object):
             if type(itemsize) is int:
                 if (size % itemsize) != 0:
                     raise ValueError("Cannot partition data as requested")
-                _count = size//itemsize
-                _itemsize = np.ones(_count,dtype=int)*(size//_count)
+                _count = size // itemsize
+                _itemsize = np.ones(_count, dtype=int) * (size // _count)
             else:
-                _itemsize = np.array(itemsize,copy=False)
+                _itemsize = np.array(itemsize, copy=False)
                 _count = len(itemsize)
                 if _itemsize.sum() != size:
                     raise ValueError("Cannot partition data as requested")
@@ -327,15 +313,15 @@ class ArrayList(object):
             _count = 1
 
         # Check if data array is big enough and resize it if necessary
-        if self._size + size  >= self._data.size:
-            capacity = int(2**np.ceil(np.log2(self._size + size)))
+        if self._size + size >= self._data.size:
+            capacity = int(2 ** np.ceil(np.log2(self._size + size)))
             self._data = np.resize(self._data, capacity)
 
         # Check if item array is big enough and resize it if necessary
-        if self._count + _count  >= len(self._items):
-            capacity = int(2**np.ceil(np.log2(self._count + _count)))
+        if self._count + _count >= len(self._items):
+            capacity = int(2 ** np.ceil(np.log2(self._count + _count)))
             self._items = np.resize(self._items, (capacity, 2))
-        
+
         # Check index
         if index < 0:
             index += len(self)
@@ -346,12 +332,13 @@ class ArrayList(object):
         if index < self._count:
             istart = index
             dstart = self._items[istart][0]
-            dstop  = self._items[istart][1]
+            dstop = self._items[istart][1]
             # Move data
-            self._data[dstart+size:self._size+size] = self._data[dstart:self._size]
+            Z = self._data[dstart:self._size]
+            self._data[dstart + size:self._size + size] = Z
             # Update moved items
-            I = self._items[istart:self._count]+size
-            self._items[istart+_count:self._count+_count] = I
+            I = self._items[istart:self._count] + size
+            self._items[istart + _count:self._count + _count] = I
 
         # Appending
         else:
@@ -361,11 +348,11 @@ class ArrayList(object):
         # Only one item (faster)
         if _count == 1:
             # Store data
-            self._data[dstart:dstart+size] = data
+            self._data[dstart:dstart + size] = data
             self._size += size
             # Store data location (= item)
             self._items[istart][0] = dstart
-            self._items[istart][1] = dstart+size
+            self._items[istart][1] = dstart + size
             self._count += 1
 
         # Several items
@@ -376,14 +363,13 @@ class ArrayList(object):
             self._size += size
 
             # Store items
-            items = np.ones((_count,2),int)*dstart
+            items = np.ones((_count, 2), int) * dstart
             C = _itemsize.cumsum()
-            items[1:,0] += C[:-1]
-            items[0:,1] += C
+            items[1:, 0] += C[:-1]
+            items[0:, 1] += C
             istop = istart + _count
             self._items[istart:istop] = items
             self._count += _count
-
 
     def append(self, data, itemsize=None):
         """

@@ -13,7 +13,6 @@ floats.
 """
 import math
 import numpy as np
-from operator import mul
 from util import dtype_reduce
 from array_list import ArrayList
 
@@ -47,7 +46,7 @@ class Item(object):
         uniforms: array-like
             Uniform parameters of the item
         """
-        
+
         self._parent   = parent
         self._key      = key
         self._vertices = vertices
@@ -103,7 +102,7 @@ class Collection(object):
     call). Each object can have its own set of uniforms provided they are a
     combination of floats.
     """
-    
+
     def __init__(self, vtype, utype, itype=np.uint32 ):
         """
 
@@ -134,17 +133,18 @@ class Collection(object):
 
         # Convert types to lists (in case they were already dtypes) such that
         # we can append new fields
-        vtype = eval(str(np.dtype(vtype)))
+        #vtype = eval(str(np.dtype(vtype)))
         # We add a uniform index to access uniform data
-        vtype.append( ('a_index', 'f4') )
-        vtype = np.dtype(vtype)
-
+        #vtype.append( ('a_index', 'f4') )
+        #vtype = np.dtype(vtype)
 
         # Check utype is made of float32 only
         utype = eval(str(np.dtype(utype)))
         r_utype = dtype_reduce(utype)
         if type(r_utype[0]) is not str or r_utype[2] != 'float32':
             raise RuntimeError("Uniform type cannot be reduced to float32 only")
+
+        # Make utype divisible by 4
         count = int(math.pow(2, math.ceil(math.log(r_utype[1], 2))))
         if (count - r_utype[1]) > 0:
             utype.append(('unused', 'f4', count-r_utype[1]))
@@ -155,6 +155,7 @@ class Collection(object):
         self._indices = ArrayList(dtype=itype)
         self._uniforms = ArrayList(dtype=utype)
 
+
     @property
     def u_shape(self):
         """ Uniform texture shape """
@@ -164,22 +165,33 @@ class Collection(object):
         rows = (len(self) // cols)+1
         return rows, cols*(self._u_float_count/4), self._u_float_count
 
+
     @property
     def vertices(self):
         """ Vertices buffer """
+
         return self._vertices
 
 
     @property
     def indices(self):
         """ Indices buffer """
+
         return self._indices
 
 
     @property
     def uniforms(self):
         """ Uniforms buffer """
+
         return self._uniforms
+
+    @property
+    def u_indices(self):
+        """ Uniform texture indices """
+
+        return np.repeat(np.arange(len(self)), self._vertices.itemsize)
+
 
 
     def __len__(self):
@@ -250,13 +262,13 @@ class Collection(object):
         del self._uniforms[key]
 
         # Update a_index at once
-        I = np.repeat(np.arange(len(self)), self._vertices.itemsize)
-        self._vertices['a_index'] = I
+        # I = np.repeat(np.arange(len(self)), self._vertices.itemsize)
+        # self._vertices['a_index'] = I
 
 
     def insert(self, index, vertices, indices, uniforms=None, itemsize=None):
         """
-        
+
         Parameters
         ----------
 
@@ -322,18 +334,17 @@ class Collection(object):
             #self._vertices[index:]['a_index'] += 1
             #vertices['a_index'] = index
             self._vertices.insert(index,vertices)
-            self._indices.insert(index,indices) 
+            self._indices.insert(index,indices)
             if uniforms is not None:
-                self._uniforms.insert(index,uniforms) 
+                self._uniforms.insert(index,uniforms)
             else:
                 U = np.zeros(1,dtype=self._uniforms.dtype)
                 self._uniforms.insert(index,U)
 
             # Update a_index at once
-            I = np.repeat(np.arange(len(self)), self._vertices.itemsize)
-            self._vertices['a_index'] = I
+            # I = np.repeat(np.arange(len(self)), self._vertices.itemsize)
+            # self._vertices['a_index'] = I
             return
-        
 
         # No item size specified
         if itemsize is None:
@@ -376,11 +387,11 @@ class Collection(object):
             raise ValueError("Cannot partition indices data as requested")
         if v_itemcount != i_itemcount:
             raise ValueError("Vertices/Indices item size not compatible")
-            
+
         I = np.repeat(v_itemsize.cumsum(),i_itemsize)
         indices[i_itemsize[0]:] += I[:-i_itemsize[0]]
         self._vertices.insert(index, vertices, v_itemsize)
-        self._indices.insert(index, indices, i_itemsize) 
+        self._indices.insert(index, indices, i_itemsize)
         if uniforms is None:
             U = np.zeros(v_itemcount,dtype=self._uniforms.dtype)
             self._uniforms.insert(index,U, itemsize=1)
@@ -388,11 +399,11 @@ class Collection(object):
             if len(uniforms) != v_itemcount:
                 if len(uniforms) == 1:
                     U = np.resize(uniforms, v_itemcount)
-                    self._uniforms.insert(index, U, itemsize=1) 
+                    self._uniforms.insert(index, U, itemsize=1)
                 else:
                     raise ValueError("Vertices/Uniforms item number not compatible")
             else:
-                self._uniforms.insert(index, uniforms, itemsize=1) 
+                self._uniforms.insert(index, uniforms, itemsize=1)
 
         # Update a_index at once
         I = np.repeat(np.arange(len(self)), self._vertices.itemsize)
@@ -402,7 +413,7 @@ class Collection(object):
 
     def append(self, vertices, indices, uniforms=None, itemsize=None):
         """
-        
+
         Parameters
         ----------
 
@@ -444,6 +455,10 @@ if __name__ == '__main__':
     C = Collection(vtype, utype, itype)
     C.append(vertices, indices, uniforms)
     C.append(vertices, indices, uniforms)
+    C.append(vertices, indices, uniforms)
     del C[0]
-    print C[0]
-    #print C[1]
+
+    print C[1].vertices
+    print C[1].indices
+    C[1]["color"] = 1,2,3
+    print C[1].uniforms

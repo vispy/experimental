@@ -31,15 +31,15 @@ C.append(vertices, indices, uniforms)
 # set of vertices within the global buffer
 C.append(vertices, indices, uniforms)
 
-# First item
+# Each item can be manipulated individually
 print C[0].vertices
 print C[0].indices
 print C[0].uniforms
 
-# Second item
-print C[1].vertices
-print C[1].indices
-print C[1].uniforms
+# or globally:
+C['position'] = 0
+C['color'] = 0,0,1
+
 
 # How to render ?
 # C.vertices must be bound to a vertex buffer
