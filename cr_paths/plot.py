@@ -165,6 +165,7 @@ class PlotCanvas(app.Canvas):
 
     def add_visual(self, name, value):
         self._visuals.append(value)
+        value._parent = self
         value._program['transform'] = self.panzoom.shader_map()
         
     def __setattr__(self, name, value):

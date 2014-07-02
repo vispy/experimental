@@ -191,21 +191,28 @@ class LineAggVisual(Visual):
                        blend_func=('src_alpha', 'one_minus_src_alpha'))
 
     def resize(self, (width, height)):
-        pass
+        self.width, self.height = width, height
 
     def draw(self):
         self.set_options()
+        
+        # WARNING: THIS IS TERRIBLY INEFFICIENT BECAUSE ALL DATA
+        # IS SENT ON GPU AT EVERY REFRESH!!!
+        # We need to put this stuff at initialization time.
         self._program._create()
         self._program._build()  # attributes / uniforms are not available until program is built
         
         self._program.bind(gloo.VertexBuffer(self._V))
         for n, v in uniforms.iteritems():
             self._program[n] = v
+            
         # WARNING/TODO: put the different sets of uniforms and put them in attributes instead
         for n, v in self._U[0].iteritems():
             self._program[n] = v
+            
+            
         self._program['u_dash_atlas'] = gloo.Texture2D(self._collec.da._data)
-        width, height = 600, 600
+        width, height = self.width, self.height
         self._program['u_proj'] = orthographic( -width//2, width//2, 
                                                 -height//2, height//2, -1, +1 )
         

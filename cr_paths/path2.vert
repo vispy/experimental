@@ -2,20 +2,17 @@ const float PI = 3.14159265358979323846264;
 const float THETA = 15.0 * 3.14159265358979323846264/180.0;
 
 // Cross product of v1 and v2
-float cross(in vec2 v1, in vec2 v2)
-{
+float cross(in vec2 v1, in vec2 v2) {
     return v1.x*v2.y - v1.y*v2.x;
 }
 
 // Returns distance of v3 to line v1-v2
-float signed_distance(in vec2 v1, in vec2 v2, in vec2 v3)
-{
+float signed_distance(in vec2 v1, in vec2 v2, in vec2 v3) {
     return cross(v2-v1,v1-v3) / length(v2-v1);
 }
 
 // Rotate v around origin
-void rotate( in vec2 v, in float alpha, out vec2 result )
-{
+void rotate( in vec2 v, in float alpha, out vec2 result ) {
     float c = cos(alpha);
     float s = sin(alpha);
     result = vec2( c*v.x - s*v.y,
