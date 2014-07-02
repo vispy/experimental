@@ -9,28 +9,6 @@ import numpy as np
 import OpenGL.GL as gl
 
 
-_gtypes = {
-    'void':        gl.GL_NONE,
-    'float':       gl.GL_FLOAT,
-    'vec2':        gl.GL_FLOAT_VEC2,
-    'vec3':        gl.GL_FLOAT_VEC3,
-    'vec4':        gl.GL_FLOAT_VEC4,
-    'int':         gl.GL_INT,
-    'ivec2':       gl.GL_INT_VEC2,
-    'ivec3':       gl.GL_INT_VEC3,
-    'ivec4':       gl.GL_INT_VEC4,
-    'bool':        gl.GL_BOOL,
-    'bvec2':       gl.GL_BOOL_VEC2,
-    'bvec3':       gl.GL_BOOL_VEC3,
-    'bvec4':       gl.GL_BOOL_VEC4,
-    'mat2':        gl.GL_FLOAT_MAT2,
-    'mat3':        gl.GL_FLOAT_MAT3,
-    'mat4':        gl.GL_FLOAT_MAT4,
-    'sampler1D':   gl.GL_SAMPLER_1D,
-    'sampler2D':   gl.GL_SAMPLER_2D,
-}
-
-
 def remove_comments(code):
     """ Remove C-style comment from GLSL code string """
 
@@ -52,61 +30,71 @@ def remove_comments(code):
 
 
 def get_declarations(code, qualifier = ""):
+    """ Extract declarations of type:
+
+        qualifier type name[,name,...];
+    """
+
+    if not len(code):
+        return []
+
     variables = []
     if qualifier:
         re_type = re.compile("""
-                             %s                         # Variable qualifier
-                             \s+(?P<type>\w+)           # Variable type
-                             \s+(?P<names>[\w,\[\] ]+); # Variable name(s)
+                             %s                           # Variable qualifier
+                             \s+(?P<type>\w+)             # Variable type
+                             \s+(?P<names>[\w,\[\]\n =\.]+); # Variable name(s)
                              """ % qualifier, re.VERBOSE)
     else:
         re_type = re.compile("""
                              \s*(?P<type>\w+)          # Variable type
-                             \s+(?P<names>[\w\[\] ]+) # Variable name(s)
+                             \s+(?P<names>[\w\[\] ]+)  # Variable name(s)
                              """, re.VERBOSE)
 
     re_names = re.compile("""
                           (?P<name>\w+)            # Variable name
                           \s*(\[(?P<size>\d+)\])? # Variable size
+                          (\s*[^,]+)?
                           """, re.VERBOSE)
-    code = remove_comments(code)
 
     for match in re.finditer(re_type, code):
-        gtype =_gtypes[match.group('type')]
+        vtype = match.group('type')
         names = match.group('names')
 
         for match in re.finditer(re_names, names):
             name = match.group('name')
             size = match.group('size')
             if size is None:
-                variables.append((name, gtype))
+                variables.append((name, vtype))
             else:
                 size = int(size)
                 if size == 0:
                     raise RuntimeError("Size of a variable array cannot be zero")
                 for i in range(size):
                     iname = '%s[%d]' % (name,i)
-                    variables.append((iname, gtype))
+                    variables.append((iname, vtype))
     return variables
 
 def get_args(code):
-    if len(code):
-        return get_declarations(code, qualifier = "")
-    return []
+    return get_declarations(code, qualifier = "")
+
+def get_externs(code):
+    return get_declarations(code, qualifier = "extern")
+
+def get_consts(code):
+    return get_declarations(code, qualifier = "const")
 
 def get_uniforms(code):
-    if len(code):
-        return get_declarations(code, qualifier = "uniform")
-    return []
+    return get_declarations(code, qualifier = "uniform")
 
 def get_attributes(code):
-    if len(code):
-        return get_declarations(code, qualifier = "attribute")
-    return []
+    return get_declarations(code, qualifier = "attribute")
 
-def get_functions(source):
+def get_varyings(code):
+    return get_declarations(code, qualifier = "varying")
+
+def get_functions(code):
     functions = []
-
     regex = re.compile("""
                        \s*(?P<type>\w+)    # Function return type
                        \s+(?P<name>[\w]+)   # Function name
@@ -114,35 +102,66 @@ def get_functions(source):
                        \s*\{(?P<code>.*?)\} # Function content
                        """, re.VERBOSE | re.DOTALL)
 
-    source = remove_comments(source)
-    for match in re.finditer(regex, source):
-        gtype =_gtypes[match.group('type')]
+    for match in re.finditer(regex, code):
+        rtype = match.group('type')
         name = match.group('name')
         args = match.group('args')
-        code = match.group('code')
-        functions.append( (gtype, name, args, code) )
+        fcode = match.group('code')
+        functions.append( (rtype, name, args, fcode) )
 
     return functions
 
+def parse(code):
+    code = remove_comments(code)
+
+    return { 'externs'   : get_externs(code),
+             'consts'    : get_consts(code),
+             'uniforms'  : get_uniforms(code),
+             'attributes': get_attributes(code),
+             'varyings'  : get_varyings(code),
+             'functions' : get_functions(code) }
+
+
+
+
+# -----------------------------------------------------------------------------
 if __name__ == '__main__':
-
     code = """
-    uniform float uniform_a, uniform_b, uniform_c;
+    # version 120
 
-    attribute float attribute_a, attribute_b, attribute_c;
+    extern float extern_a[2] /* comment */,
+                 extern_b,   /* comment */
+                 extern_c    /* comment */;
 
-    void function_a(int a, int b, int c) {}
+    const float const_a = 1.0;
+    const float const_b = 2.0, const_c = 3.0;
+
+    uniform float uniform_a;
+    uniform float uniform_b;
+    uniform float uniform_c[2];
+
+    attribute float attribute_a[2] , attribute_b , attribute_c;
+
+    varying float varying_a[2];
+    varying vec4 varying_b;
+    varying mat4 varying_c;
+
+    void
+    function_a(int a, int b, int c)
+    {    }
 
     void function_b(int a, int b, int c) {}
     """
 
-    for (name,gtype) in get_uniforms(code):
-        print name
+    p = parse(code)
 
-    print
-    for (name,gtype) in get_attributes(code):
-        print name
-
-    print
-    for (gtype,name,args,func) in get_functions(code):
-        print name
+    for key in p.keys():
+        print key
+        if key is not "functions":
+            for (name,vtype) in p[key]:
+                print " - %s (%s)"%  (name,vtype)
+            print
+        else:
+            for (rtype,name,args,func) in p[key]:
+                print " - %s %s (%s) { ... }"%  (rtype, name, args)
+            print
