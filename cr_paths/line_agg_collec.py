@@ -98,7 +98,7 @@ vtype = np.dtype( [('a_position', 'f4', 2),
                     ('a_segment',  'f4', 2),
                     ('a_angles',   'f4', 2),
                     ('a_texcoord', 'f4', 2),
-                    ('length', 'f4', 1),
+                    ('alength', 'f4', 1),
                     ('color', 'f4', 4),
                     ])
 
@@ -146,7 +146,7 @@ class LineCollection(object):
         
     
         V, I, length = bake(vtype, vertices)
-        V['length'] = length * np.ones(len(V))
+        V['alength'] = length * np.ones(len(V))
         V['color'] = np.tile(color, (len(V), 1))
         
         self._Vs.append(V)

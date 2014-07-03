@@ -34,7 +34,7 @@ uniform float antialias;
 uniform vec2 linecaps;
 uniform float linejoin;
 uniform float miter_limit;
-attribute float length;
+attribute float alength;
 uniform float dash_phase;
 uniform float dash_period;
 uniform float dash_index;
@@ -76,7 +76,7 @@ void main()
 
     v_linejoin    = linejoin;
     v_miter_limit = miter_limit;
-    v_length      = length;
+    v_length      = alength;
     v_dash_phase  = dash_phase;
 
     v_dash_period = dash_period;
