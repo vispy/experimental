@@ -90,9 +90,10 @@ class LineVisual(app.Canvas):
     def on_mouse_wheel(self, event):
         c = event.delta[1] * .1
         x, y = self._normalize(event.pos)
+        
         self.panzoom.zoom((c, c), center=(x, y))
-        self.update()
         self.panzoom.shader_map()
+        self.update()
         
     def on_resize(self, event):
         self.width, self.height = event.size
