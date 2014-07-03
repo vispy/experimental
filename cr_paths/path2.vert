@@ -203,7 +203,7 @@ void main()
     // Miter distance
     // ------------------------------------------------------------------------
     vec2 t;
-    vec2 curr = a_position*u_scale;
+    vec2 curr = transform(vec4(a_position,0.,1.)).xy*u_scale;
     if( a_texcoord.x < 0.0 ) {
         vec2 next = curr + t2*(v_segment.y-v_segment.x);
 
