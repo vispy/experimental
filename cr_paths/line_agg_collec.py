@@ -210,6 +210,7 @@ class LineAggVisual(Visual):
         for n, v in self._U[0].iteritems():
             self._program[n] = v
             
+        self._program['tr_scale'] = self._parent.panzoom.scale[:2]
             
         self._program['u_dash_atlas'] = gloo.Texture2D(self._collec.da._data)
         width, height = self.width, self.height

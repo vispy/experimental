@@ -28,6 +28,7 @@ uniform mat4 u_proj;
 
 attribute vec4 color;
 uniform float u_scale;
+uniform vec2 tr_scale;
 uniform float linewidth;
 uniform float antialias;
 uniform vec2 linecaps;
@@ -87,8 +88,8 @@ void main()
 
     // Attributes to varyings
     v_angles  = a_angles;
-    v_segment = a_segment * u_scale;
-    v_length  = v_length * u_scale;
+    v_segment = a_segment * u_scale * tr_scale.x;  // TODO: proper scaling
+    v_length  = v_length * u_scale * tr_scale.x;  // TODO: proper scaling
 
     // Thickness below 1 pixel are represented using a 1 pixel thickness
     // and a modified alpha
@@ -105,9 +106,9 @@ void main()
     // This is the actual half width of the line
     float w = ceil(1.25*v_antialias+v_linewidth)/2.0;
 
-    vec2 position = a_position*u_scale;
-    vec2 t1 = normalize(a_tangents.xy);
-    vec2 t2 = normalize(a_tangents.zw);
+    vec2 position = transform(vec4(a_position,0.,1.)).xy*u_scale;
+    vec2 t1 = normalize(tr_scale*a_tangents.xy);
+    vec2 t2 = normalize(tr_scale*a_tangents.zw);
     float u = a_texcoord.x;
     float v = a_texcoord.y;
     vec2 o1 = vec2( +t1.y, -t1.x);
@@ -231,5 +232,5 @@ void main()
 
     v_texcoord = vec2( u, v*w );
     
-    gl_Position = transform(u_proj*vec4(position, 0.0, 1.0));
+    gl_Position = u_proj*vec4(position, 0.0, 1.0);
 }
