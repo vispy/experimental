@@ -108,7 +108,7 @@ uniforms = dict(
     linewidth = 10.,
     antialias = 1.0,
     miter_limit = 4.0,
-    u_scale = 300,
+    u_scale = (300,300),
     dash_phase = 0.0,
     # length=length,
     
@@ -214,6 +214,7 @@ class LineAggVisual(Visual):
             
         self._program['u_dash_atlas'] = gloo.Texture2D(self._collec.da._data)
         width, height = self.width, self.height
+        self._program['u_scale'] = width//2, height//2
         self._program['u_proj'] = orthographic( -width//2, width//2, 
                                                 -height//2, height//2, -1, +1 )
         
@@ -228,7 +229,7 @@ if __name__ == '__main__':
     x = np.linspace(-1., 1., 1000)
     y = .25*np.sin(15*x)
     vertices1 = np.c_[x,y]
-    vertices2 = np.c_[x,y+.25]
+    vertices2 = np.c_[np.cos(3*x)*.5, np.sin(3*x)*.5]
 
     
     ax.line = LineAggVisual(paths=[vertices1, vertices2], style=[

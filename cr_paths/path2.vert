@@ -27,7 +27,7 @@ vec4 transform(vec4);
 uniform mat4 u_proj;
 
 attribute vec4 color;
-uniform float u_scale;
+uniform vec2 u_scale;
 uniform vec2 tr_scale;
 uniform float linewidth;
 uniform float antialias;
@@ -88,8 +88,8 @@ void main()
 
     // Attributes to varyings
     v_angles  = a_angles;
-    v_segment = a_segment * u_scale * tr_scale.x;  // TODO: proper scaling
-    v_length  = v_length * u_scale * tr_scale.x;  // TODO: proper scaling
+    v_segment = a_segment * u_scale.x * tr_scale.x;  // TODO: proper scaling
+    v_length  = v_length * u_scale * tr_scale;  // TODO: proper scaling
 
     // Thickness below 1 pixel are represented using a 1 pixel thickness
     // and a modified alpha
