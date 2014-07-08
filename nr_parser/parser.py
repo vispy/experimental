@@ -41,18 +41,18 @@ def get_declarations(code, qualifier = ""):
     variables = []
     if qualifier:
         re_type = re.compile("""
-                             %s                           # Variable qualifier
-                             \s+(?P<type>\w+)             # Variable type
-                             \s+(?P<names>[\w,\[\]\n =\.]+); # Variable name(s)
+                             %s                               # Variable qualifier
+                             \s+(?P<type>\w+)                 # Variable type
+                             \s+(?P<names>[\w,\[\]\n =\.$]+); # Variable name(s)
                              """ % qualifier, re.VERBOSE)
     else:
         re_type = re.compile("""
-                             \s*(?P<type>\w+)          # Variable type
-                             \s+(?P<names>[\w\[\] ]+)  # Variable name(s)
+                             \s*(?P<type>\w+)         # Variable type
+                             \s+(?P<names>[\w\[\] ]+) # Variable name(s)
                              """, re.VERBOSE)
 
     re_names = re.compile("""
-                          (?P<name>\w+)            # Variable name
+                          (?P<name>\w+)           # Variable name
                           \s*(\[(?P<size>\d+)\])? # Variable size
                           (\s*[^,]+)?
                           """, re.VERBOSE)
@@ -60,7 +60,6 @@ def get_declarations(code, qualifier = ""):
     for match in re.finditer(re_type, code):
         vtype = match.group('type')
         names = match.group('names')
-
         for match in re.finditer(re_names, names):
             name = match.group('name')
             size = match.group('size')
@@ -74,6 +73,13 @@ def get_declarations(code, qualifier = ""):
                     iname = '%s[%d]' % (name,i)
                     variables.append((iname, vtype))
     return variables
+
+def get_hooks(code):
+    hooks = []
+    re_hooks = re.compile("\<(?P<hook>\w+)\>", re.VERBOSE)
+    for match in re.finditer(re_hooks, code):
+        hooks.append(match.group('hook'))
+    return hooks
 
 def get_args(code):
     return get_declarations(code, qualifier = "")
@@ -112,16 +118,20 @@ def get_functions(code):
     return functions
 
 def parse(code):
-    code = remove_comments(code)
+    if code:
+        code = remove_comments(code)
+    externs   = get_externs(code) if code else []
+    consts    = get_consts(code) if code else []
+    uniforms  = get_uniforms(code) if code else []
+    attributes= get_attributes(code) if code else []
+    varyings  = get_varyings(code) if code else []
+    hooks     = get_hooks(code) if code else []
+    functions = get_functions(code) if code else []
 
-    return { 'externs'   : get_externs(code),
-             'consts'    : get_consts(code),
-             'uniforms'  : get_uniforms(code),
-             'attributes': get_attributes(code),
-             'varyings'  : get_varyings(code),
-             'functions' : get_functions(code) }
-
-
+    return { 'externs'   : externs,   'consts'    : consts,
+             'uniforms'  : uniforms,  'attributes': attributes,
+             'varyings'  : varyings,  'hooks'     : hooks,
+             'functions' : functions }
 
 
 # -----------------------------------------------------------------------------
@@ -133,12 +143,13 @@ if __name__ == '__main__':
                  extern_b,   /* comment */
                  extern_c    /* comment */;
 
-    const float const_a = 1.0;
+    const float const_a = <hook_1>;
     const float const_b = 2.0, const_c = 3.0;
 
     uniform float uniform_a;
     uniform float uniform_b;
     uniform float uniform_c[2];
+    uniform float <hook_2>;
 
     attribute float attribute_a[2] , attribute_b , attribute_c;
 
@@ -146,9 +157,13 @@ if __name__ == '__main__':
     varying vec4 varying_b;
     varying mat4 varying_c;
 
+    <hook_3>;
+
     void
     function_a(int a, int b, int c)
-    {    }
+    {
+        float a = 1;
+    }
 
     void function_b(int a, int b, int c) {}
     """
@@ -157,9 +172,13 @@ if __name__ == '__main__':
 
     for key in p.keys():
         print key
-        if key is not "functions":
+        if key not in["functions", "hooks"]:
             for (name,vtype) in p[key]:
                 print " - %s (%s)"%  (name,vtype)
+            print
+        elif key == "hooks":
+            for name in p[key]:
+                print " - %s " % name
             print
         else:
             for (rtype,name,args,func) in p[key]:
