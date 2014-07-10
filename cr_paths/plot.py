@@ -7,7 +7,7 @@ from vispy import app
 from vispy import gloo
 from vispy.scene.shaders import Function, ModularProgram
 from vispy.scene.visuals import Visual
-from vispy.scene.transforms import STTransform
+from vispy.scene.transforms import STTransform, NullTransform, AffineTransform
 
 
 class PanZoomTransform(STTransform):
@@ -15,21 +15,14 @@ class PanZoomTransform(STTransform):
     
     def move(self, (dx, dy)):
         """I call this when I want to translate."""
-        self.pan = (self.pan[0] + dx/self.scale[0],
-                    self.pan[1] + dy/self.scale[1])
-        self.translate = (self.pan[0]*self.scale[0],
-                          self.pan[1]*self.scale[1])
+        self.translate = self.translate + (dx, -dy, 0, 0)
         
     def zoom(self, (dx, dy), center=(0., 0.)):
         """I call this when I want to zoom."""
-        scale = (self.scale[0] * exp(2.5*dx),
-                 self.scale[1] * exp(2.5*dy))
-        tr = self.pan
-        self.pan = (tr[0] - center[0] * (1./self.scale[0] - 1./scale[0]),
-                    tr[1] + center[1] * (1./self.scale[1] - 1./scale[1]))
-        self.scale = scale
-        self.translate = (self.pan[0]*self.scale[0],
-                          self.pan[1]*self.scale[1])
+        scale = (exp(0.01*dx), exp(0.01*dy), 1, 1)
+        center = center + (0., 1.)
+        self.translate = center + ((self.translate - center) * scale)
+        self.scale = self.scale * scale
 
 
 class MarkerVisual(Visual):
@@ -154,19 +147,37 @@ class LineVisual(Visual):
 
 
 class PlotCanvas(app.Canvas):
-    def _normalize(self, (x, y)):
-        w, h = float(self.size[0]), float(self.size[1])
-        return x/(w/2.)-1., y/(h/2.)-1.
+    #def _normalize(self, (x, y)):
+        #w, h = float(self.size[0]), float(self.size[1])
+        #return x/(w/2.)-1., y/(h/2.)-1.
     
     def __init__(self, **kwargs):
         app.Canvas.__init__(self, close_keys='escape', **kwargs)
         self._visuals = []
         self.panzoom = PanZoomTransform()
+        self.panzoom.scale = (200, -200)
+        self.panzoom.translate = (300, 300)
+        self.doc_px_transform = STTransform(scale=(1, 1), translate=(0, 0))
+        self.px_ndc_transform = STTransform(scale=(1, 1), translate=(0, 0))
+        self._update_transforms()
+        
+    def _update_transforms(self):
+        # Update doc and pixel transforms to account for new canvas shape.
+        
+        # Eventually this should be provided by the base Canvas class
+        # and should account for logical vs physical pixels, framebuffers, 
+        # and glViewport. 
+        
+        s = self.size
+        self.px_ndc_transform.scale = (2.0 / s[0], -2.0 / s[1])
+        self.px_ndc_transform.translate = (-1, 1)
 
     def add_visual(self, name, value):
         self._visuals.append(value)
         value._parent = self
         value._program['transform'] = self.panzoom.shader_map()
+        value._program['doc_px_transform'] = self.doc_px_transform.shader_map()
+        value._program['px_ndc_transform'] = self.px_ndc_transform.shader_map()
         
     def __setattr__(self, name, value):
         super(PlotCanvas, self).__setattr__(name, value)
@@ -175,9 +186,12 @@ class PlotCanvas(app.Canvas):
         
     def on_mouse_move(self, event):
         if event.is_dragging:
-            x0, y0 = self._normalize(event.press_event.pos)
-            x1, y1 = self._normalize(event.last_event.pos)
-            x, y = self._normalize(event.pos)
+            #x0, y0 = self._normalize(event.press_event.pos)
+            #x1, y1 = self._normalize(event.last_event.pos)
+            #x, y = self._normalize(event.pos)
+            x0, y0 = event.press_event.pos
+            x1, y1 = event.last_event.pos
+            x, y = event.pos
             dxy = ((x - x1), -(y - y1))
             center = (x0, y0)
             button = event.press_event.button
@@ -188,20 +202,20 @@ class PlotCanvas(app.Canvas):
                 self.panzoom.zoom(dxy, center=center)
                 
             self.update()
-            self.panzoom.shader_map()
         
     def on_mouse_wheel(self, event):
         c = event.delta[1] * .1
         x, y = self._normalize(event.pos)
         self.panzoom.zoom((c, c), center=(x, y))
         self.update()
-        self.panzoom.shader_map()
         
     def on_resize(self, event):
         self.width, self.height = event.size
         gloo.set_viewport(0, 0, self.width, self.height)
+        self._update_transforms()
         for v in self._visuals:
             v.resize(event.size)
+        
 
     def on_draw(self, event):
         gloo.clear()
@@ -211,6 +225,10 @@ class PlotCanvas(app.Canvas):
     def show(self):
         super(PlotCanvas, self).show()
         app.run()
+        
+    
+    
+    
     
 
 

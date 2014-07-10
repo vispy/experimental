@@ -184,7 +184,9 @@ class LineAggVisual(Visual):
         self._program = ModularProgram(self.VERTEX_SHADER, self.FRAGMENT_SHADER)
         self._collec = LineCollection(**kwargs)
         self._V, self._I, self._U = self._collec.build_buffers()
+        self._V_buf = gloo.VertexBuffer(self._V)
         self.index = gloo.IndexBuffer(self._I)
+        self._dash_atlas = gloo.Texture2D(self._collec.da._data)
         
     def set_options(self):
         gloo.set_state(clear_color=(1, 1, 1, 1), blend=True, 
@@ -199,10 +201,11 @@ class LineAggVisual(Visual):
         # WARNING: THIS IS TERRIBLY INEFFICIENT BECAUSE ALL DATA
         # IS SENT ON GPU AT EVERY REFRESH!!!
         # We need to put this stuff at initialization time.
-        self._program._create()
-        self._program._build()  # attributes / uniforms are not available until program is built
         
-        self._program.bind(gloo.VertexBuffer(self._V))
+        # attributes / uniforms are not available until program is built
+        self._program.prepare()
+        
+        self._program.bind(self._V_buf)
         for n, v in uniforms.iteritems():
             self._program[n] = v
             
@@ -210,13 +213,7 @@ class LineAggVisual(Visual):
         for n, v in self._U[0].iteritems():
             self._program[n] = v
             
-        self._program['tr_scale'] = self._parent.panzoom.scale[:2]
-            
-        self._program['u_dash_atlas'] = gloo.Texture2D(self._collec.da._data)
-        width, height = self.width, self.height
-        self._program['u_scale'] = width//2, height//2
-        self._program['u_proj'] = orthographic( -width//2, width//2, 
-                                                -height//2, height//2, -1, +1 )
+        self._program['u_dash_atlas'] = self._dash_atlas
         
         self._program.draw('triangles', indices=self.index)
 

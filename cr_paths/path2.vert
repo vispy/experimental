@@ -20,15 +20,30 @@ void rotate( in vec2 v, in float alpha, out vec2 result ) {
 }
 
 vec4 transform(vec4);
+vec4 doc_px_transform(vec4);
+vec4 px_ndc_transform(vec4);
+
+vec2 transform_vector(vec2 x) {
+    vec4 o = transform(vec4(0, 0, 0, 1));
+    return (transform(vec4(x, 0, 1)) - o).xy;
+}
+
+vec2 doc_px_transform_vector(vec2 x) {
+    vec4 o = doc_px_transform(vec4(0, 0, 0, 1));
+    return (doc_px_transform(vec4(x, 0, 1)) - o).xy;
+}
+
+
+
+
 
 // Uniforms
 //uniform mat4 u_matrix;
 //uniform mat4 u_view;
-uniform mat4 u_proj;
 
 attribute vec4 color;
-uniform vec2 u_scale;
-uniform vec2 tr_scale;
+// uniform vec2 u_scale;
+// uniform vec2 tr_scale;
 uniform float linewidth;
 uniform float antialias;
 uniform vec2 linecaps;
@@ -43,15 +58,15 @@ uniform float closed;
 
 
 // Attributes
-attribute vec2 a_position;
-attribute vec4 a_tangents;
-attribute vec2 a_segment;
+attribute vec2 a_position; // position of each vertex
+attribute vec4 a_tangents; // vector pointing from one vertex to the next
+attribute vec2 a_segment;  // distance along path
 attribute vec2 a_angles;
 attribute vec2 a_texcoord;
 
 // Varying
 varying vec4  v_color;
-varying vec2  v_segment;
+varying vec2  v_segment;  
 varying vec2  v_angles;
 varying vec2  v_linecaps;
 varying vec2  v_texcoord;
@@ -88,8 +103,9 @@ void main()
 
     // Attributes to varyings
     v_angles  = a_angles;
-    v_segment = a_segment * u_scale.x * tr_scale.x;  // TODO: proper scaling
-    v_length  = v_length * u_scale * tr_scale;  // TODO: proper scaling
+    //v_segment = a_segment * u_scale.x * tr_scale.x;  // TODO: proper scaling
+    //v_length  = v_length * u_scale * tr_scale;  // TODO: proper scaling
+    v_segment = a_segment;
 
     // Thickness below 1 pixel are represented using a 1 pixel thickness
     // and a modified alpha
@@ -104,11 +120,19 @@ void main()
     }
 
     // This is the actual half width of the line
+    // TODO: take care of logical - physical pixel difference here.
     float w = ceil(1.25*v_antialias+v_linewidth)/2.0;
 
-    vec2 position = transform(vec4(a_position,0.,1.)).xy*u_scale;
-    vec2 t1 = normalize(tr_scale*a_tangents.xy);
-    vec2 t2 = normalize(tr_scale*a_tangents.zw);
+    //vec2 position = transform(vec4(a_position,0.,1.)).xy*u_scale;
+    vec2 position = transform(vec4(a_position,0.,1.)).xy;
+    // At this point, position must be in _doc_ coordinates because the line
+    // width will be added to it.
+    
+    
+    //vec2 t1 = normalize(tr_scale*a_tangents.xy);
+    //vec2 t2 = normalize(tr_scale*a_tangents.zw);
+    vec2 t1 = normalize(transform_vector(a_tangents.xy));
+    vec2 t2 = normalize(transform_vector(a_tangents.zw));
     float u = a_texcoord.x;
     float v = a_texcoord.y;
     vec2 o1 = vec2( +t1.y, -t1.x);
@@ -203,7 +227,8 @@ void main()
     // Miter distance
     // ------------------------------------------------------------------------
     vec2 t;
-    vec2 curr = transform(vec4(a_position,0.,1.)).xy*u_scale;
+    //vec2 curr = transform(vec4(a_position,0.,1.)).xy*u_scale;
+    vec2 curr = transform(vec4(a_position,0.,1.)).xy;
     if( a_texcoord.x < 0.0 ) {
         vec2 next = curr + t2*(v_segment.y-v_segment.x);
 
@@ -232,5 +257,5 @@ void main()
 
     v_texcoord = vec2( u, v*w );
     
-    gl_Position = u_proj*vec4(position, 0.0, 1.0);
+    gl_Position = px_ndc_transform(doc_px_transform(vec4(position, 0.0, 1.0)));
 }
