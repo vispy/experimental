@@ -23,17 +23,10 @@ vec4 transform(vec4);
 vec4 doc_px_transform(vec4);
 vec4 px_ndc_transform(vec4);
 
-vec2 transform_vector(vec2 x) {
-    vec4 o = transform(vec4(0, 0, 0, 1));
-    return (transform(vec4(x, 0, 1)) - o).xy;
+vec2 transform_vector(vec2 x, vec2 base) {
+    vec4 o = transform(vec4(base, 0, 1));
+    return (transform(vec4(base+x, 0, 1)) - o).xy;
 }
-
-vec2 doc_px_transform_vector(vec2 x) {
-    vec4 o = doc_px_transform(vec4(0, 0, 0, 1));
-    return (doc_px_transform(vec4(x, 0, 1)) - o).xy;
-}
-
-
 
 
 
@@ -131,8 +124,8 @@ void main()
     
     //vec2 t1 = normalize(tr_scale*a_tangents.xy);
     //vec2 t2 = normalize(tr_scale*a_tangents.zw);
-    vec2 t1 = normalize(transform_vector(a_tangents.xy));
-    vec2 t2 = normalize(transform_vector(a_tangents.zw));
+    vec2 t1 = normalize(transform_vector(a_tangents.xy, a_position));
+    vec2 t2 = normalize(transform_vector(a_tangents.zw, a_position));
     float u = a_texcoord.x;
     float v = a_texcoord.y;
     vec2 o1 = vec2( +t1.y, -t1.x);

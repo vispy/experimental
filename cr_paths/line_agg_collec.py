@@ -224,7 +224,8 @@ if __name__ == '__main__':
     
     
     x = np.linspace(-1., 1., 1000)
-    y = .25*np.sin(15*x)
+    y = .25*np.sin(15*x) + 1.
+    print y
     vertices1 = np.c_[x,y]
     vertices2 = np.c_[np.cos(3*x)*.5, np.sin(3*x)*.5]
 

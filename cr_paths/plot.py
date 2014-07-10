@@ -7,7 +7,7 @@ from vispy import app
 from vispy import gloo
 from vispy.scene.shaders import Function, ModularProgram
 from vispy.scene.visuals import Visual
-from vispy.scene.transforms import STTransform, NullTransform, AffineTransform
+from vispy.scene.transforms import STTransform, LogTransform, PolarTransform
 
 
 class PanZoomTransform(STTransform):
@@ -175,7 +175,7 @@ class PlotCanvas(app.Canvas):
     def add_visual(self, name, value):
         self._visuals.append(value)
         value._parent = self
-        value._program['transform'] = self.panzoom.shader_map()
+        value._program['transform'] = (self.panzoom * PolarTransform()).shader_map()
         value._program['doc_px_transform'] = self.doc_px_transform.shader_map()
         value._program['px_ndc_transform'] = self.px_ndc_transform.shader_map()
         
