@@ -11,15 +11,18 @@ define(["jquery", "events", "gloo"], function($, events, gloo) {
     var vispy = function() {
         // Constructor of the Vispy library.
         this.events = events;
+        this.gloo = gloo;
     };
 
     vispy.prototype.init = function(canvas_id) {
         // Initialize the canvas.
         var canvas = $(canvas_id);
-        $(canvas).css("background-color", "black");
 
-
+        // Initialize events.
         this.events.init(canvas);
+
+        // Initialize WebGL.
+        this.gloo.init(canvas);
 
         return canvas;
     };
