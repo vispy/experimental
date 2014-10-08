@@ -7,6 +7,9 @@
         c = vispy.init("#mycanvas");
 
         vispy.gloo.clear(c, [1,0,0,1]);
+
+        vispy.gloo.glir.call(c, ['CREATE', 4, 'VertexBuffer']);
+        vispy.gloo.glir.call(c, ['DELETE', 4]);
     });
 </script>
 </head> 
