@@ -37,5 +37,21 @@ define(["jquery"], function($) {
         }
     };
 
+    glir.prototype.func = function(c, args) {
+        var name = args[0];
+        console.debug("Calling {0}.".format(name));
+
+        // Replace strings by global GL variables.
+        for (var i = 1; i < args.length; i++) {
+            if (typeof args[i] === 'string') {
+                args[i] = c.gl[args[i]];
+            }
+        }
+
+        var func = c.gl[name];
+        var func_args = args.slice(1)
+        func.apply(c.gl, func_args);
+    };
+
     return new glir();
 });
