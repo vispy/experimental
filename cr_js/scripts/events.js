@@ -198,7 +198,7 @@ function init_app(c) {
 
 
 /* Creation of vispy.events */
-define(['jquery'], function($) {
+define(["jquery", "jquery-mousewheel"], function($, _) {
     var events = function() {
         // Constructor.
 

@@ -7,7 +7,7 @@ require.config({
 });
 
 // Vispy library entry point.
-define(["jquery", "jquery-mousewheel", "events"], function($, _, events) {
+define(["jquery", "events", "gloo"], function($, events, gloo) {
     var vispy = function() {
         // Constructor of the Vispy library.
         this.events = events;
