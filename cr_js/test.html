@@ -5,11 +5,8 @@
 <script>
     require(["vispy"], function(vispy) {
         c = vispy.init("#mycanvas");
-        vispy.gloo.glir.call(c, ['FUNC', 'clearColor', 1, 0, 0, 1]);
-        vispy.gloo.glir.call(c, ['FUNC', 'clear', 'COLOR_BUFFER_BIT']);
-
-        vispy.gloo.glir.call(c, ['CREATE', 'myvbo', 'VertexBuffer']);
-        vispy.gloo.glir.call(c, ['DATA', 'myvbo', 0, [-0.5, -0.5, 0.5, -0.5, 0.5, 0.5]]);
+        var w = c.width();
+        var h = c.height();
 
         var VS = " \
         attribute vec2 a_position; \
@@ -19,27 +16,31 @@
 
         var FS = " \
         void main() { \
-            gl_FragColor = vec4(0, 0, 0, 1); \
+            gl_FragColor = vec4(1, 1, 1, 1); \
         }";
+
+        /* INITIALIZE */
+        vispy.gloo.glir.call(c, ['CREATE', 'myvbo', 'VertexBuffer']);
+        vispy.gloo.glir.call(c, ['DATA', 'myvbo', 0, [-0.5, -0.5, 0.5, -0.5, 0.5, 0.5]]);
 
         vispy.gloo.glir.call(c, ['CREATE', 'myprogram', 'Program']);
         vispy.gloo.glir.call(c, ['SHADERS', 'myprogram', VS, FS]);
-        
         vispy.gloo.glir.call(c, ['ATTRIBUTE', 'myprogram', 'a_position',
                                  'vec2', 'myvbo', 0, 0]);
-        
+
+        /* DRAW */
+        vispy.gloo.glir.call(c, ['FUNC', 'clearColor', 0, 0, 0, 1]);
+        vispy.gloo.glir.call(c, ['FUNC', 'clear', 'COLOR_BUFFER_BIT']);        
+        vispy.gloo.glir.call(c, ['FUNC', 'viewport', 0, 0, w, h]);
         vispy.gloo.glir.call(c, ['DRAW', 'myprogram', 'TRIANGLE_STRIP',
                                  [0, 3]]);
-
     
     });
 </script>
 </head> 
 <body>
 
-<canvas id="mycanvas"
-        style="width: 100%; height: 90%;">
-</canvas>
+<canvas id="mycanvas" width="600" height="400"></canvas>
 
 </body>
 </html>

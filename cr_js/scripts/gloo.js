@@ -17,6 +17,8 @@ define(["jquery", "gloo.glir"], function($, glir) {
     gloo.prototype.init = function(c) {
         init_webgl(c);
         this.glir.init(c);
+
+        // c.onresize = function onresize(w
     };
 
     return new gloo();
