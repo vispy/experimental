@@ -49,14 +49,13 @@ function create_attribute(c, program, vbo_handle, vbo_type,
     // stride: 0 by default
     // offset: 0 by default
 
-    // c.gl.useProgram(program);
     var attribute_handle = c.gl.getAttribLocation(program, name);
     c.gl.bindBuffer(c.gl[vbo_type], vbo_handle);
 
-    // c.gl.enableVertexAttribArray(attribute_handle);
-    // c.gl.vertexAttribPointer(attribute_handle, ndim, 
-    //                          c.gl[attribute_type],
-    //                          false, stride, offset);
+    c.gl.enableVertexAttribArray(attribute_handle);
+    c.gl.vertexAttribPointer(attribute_handle, ndim, 
+                             c.gl[attribute_type],
+                             false, stride, offset);
     return attribute_handle;
 }
 
@@ -187,11 +186,29 @@ define(["jquery"], function($) {
                 name, program_id
             ));
         var attribute_id = create_attribute(c, program_handle, 
-            vbo_handle, vbo_type,
+            vbo_handle, 'ARRAY_BUFFER',
             name, attribute_type, ndim, stride, offset);
 
         // QUESTION: attributes don't have a user-specified id?
         // c._ns[] = ['Attribute', attribute_id];
+    }
+
+    glir.prototype.draw = function(c, args) {
+        var program_id = args[0];
+        var mode = args[1];
+        var selection = args[2];
+
+        if (len(selection) == 2) {
+            var start = selection[0];
+            var count = selection[1];
+            // TODO
+        }     
+        else if (len(selection) == 3) {
+            var index_buffer_handle = selection[0];
+            var index_buffer_type = selection[1];
+            var count = selection[2];
+            // TODO
+        }
     }
 
     glir.prototype.func = function(c, args) {
