@@ -7,8 +7,20 @@
         c = vispy.init("#mycanvas");
         vispy.gloo.glir.call(c, ['FUNC', 'clearColor', 1, 0, 0, 1]);
         vispy.gloo.glir.call(c, ['FUNC', 'clear', 'COLOR_BUFFER_BIT']);
-        vispy.gloo.glir.call(c, ['CREATE', 4, 'VertexBuffer']);
-        vispy.gloo.glir.call(c, ['DELETE', 4]);
+
+        vispy.gloo.glir.call(c, ['CREATE', 'myvbo', 'VertexBuffer']);
+        vispy.gloo.glir.call(c, ['DELETE', 'myvbo']);
+
+        var VS = "void main() { \
+            gl_Position = vec4(0, 0, 0, 1); \
+        }";
+
+        var FS = "void main() { \
+            gl_FragColor = vec4(0, 0, 0, 1); \
+        }";
+
+        vispy.gloo.glir.call(c, ['CREATE', 'myprogram', 'Program']);
+        vispy.gloo.glir.call(c, ['SHADERS', 'myprogram', VS, FS]);
     });
 </script>
 </head> 
