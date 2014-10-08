@@ -10,3 +10,7 @@ if (!String.prototype.format) {
     });
   };
 }
+
+function is_array(x) {
+    return (Object.prototype.toString.call(x) === '[object Array]');
+}

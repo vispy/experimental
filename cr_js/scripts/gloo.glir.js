@@ -37,6 +37,49 @@ function attach_shaders(c, program, vertex, fragment) {
     }
 }
 
+function create_attribute(c, program, vbo, vbo_type,
+                          name, attribute_type,
+                          ndim, stride, offset) {
+    // program: program handle
+    // name: attribute name
+    // vbo: vbo handle
+    // vbo_type
+    // attribute_type: FLOAT, INT or BOOL
+    // ndim: 2, 3 or 4
+    // stride: 0 by default
+    // offset: 0 by default
+
+    // c.gl.useProgram(program);
+    var attribute_handle = c.gl.getAttribLocation(program, name);
+
+    c.gl.bindBuffer(c.gl[vbo_type], vbo);
+
+    c.gl.enableVertexAttribArray(attribute_handle);
+    c.gl.vertexAttribPointer(attribute_handle, ndim, 
+                             c.gl[attribute_type],
+                             false, stride, offset);
+    return attribute_handle;
+}
+
+function get_attribute_info(type) {
+    // type: vec2, ivec3, float, etc.
+    
+    // Find OpenGL attribute type.
+    var gl_type = 'FLOAT';
+    if (type[0] == 'i' || type == 'int') {
+        gl_type = 'INT';
+    }
+    
+    // Find ndim.
+    if (type == 'int' || type == 'float') {
+        var ndim = 1;
+    }
+    else {
+        ndim = parseInt(type.slice(-1));
+    }
+
+    return [gl_type, ndim];
+}
 
 /* Creation of vispy.gloo.glir */
 define(["jquery"], function($) {
@@ -61,7 +104,7 @@ define(["jquery"], function($) {
         var cls = args[1];
         if (cls == 'VertexBuffer') {
             console.debug("Creating vertex buffer '{0}'.".format(id));
-            c._ns[id] = [cls, c.gl.createBuffer()];
+            c._ns[id] = [cls, c.gl.createBuffer(), null, null];  // type, offset
         }
         else if (cls == 'Program') {
             console.debug("Creating program '{0}'.".format(id));
@@ -99,6 +142,47 @@ define(["jquery"], function($) {
         // Attach shaders.
         console.debug("Attaching shaders for program '{0}'".format(id));
         attach_shaders(c, handle, vs, fs);
+    }
+
+    glir.prototype.data = function(c, args) {
+        var vbo_id = args[0];
+        var offset = args[1];
+        var data = args[2];
+        
+        // TODO: set the data for VertexBuffer
+        // TODO: find the type
+
+        c._ns[vbo_id][2] = type;
+        c._ns[vbo_id][3] = offset;
+    }
+
+    glir.prototype.attribute = function(c, args) {
+        var program_id = args[0];  // program id
+        var name = args[1];
+        var type = args[2];
+        var vbo_id = args[3];
+        var stride = args[4];
+        var offset = args[5];
+
+        var program_handle = c._ns[program_id][1];
+
+        _attribute_info = get_attribute_info(type);
+        var attribute_type = _attribute_info[0];
+        var ndim = _attribute_info[1];
+
+        _vbo_info = c._ns[vbo_id];
+        var vbo_handle = _vbo_info[0];
+        var vbo_type = _vbo_info[1];
+
+        console.debug("Creating attribute '{0}' for program '{1}'.".format(
+                name, program_id
+            ));
+        var attribute_id = create_attribute(c, program_handle, 
+            vbo_handle, vbo_type,
+            name, attribute_type, ndim, stride, offset);
+
+        // QUESTION: attributes don't have a user-specified id?
+        // c._ns[] = ['Attribute', attribute_id];
     }
 
     glir.prototype.func = function(c, args) {

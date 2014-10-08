@@ -11,16 +11,22 @@
         vispy.gloo.glir.call(c, ['CREATE', 'myvbo', 'VertexBuffer']);
         vispy.gloo.glir.call(c, ['DELETE', 'myvbo']);
 
-        var VS = "void main() { \
+        var VS = " \
+        attribute vec2 a_position; \
+        void main() { \
             gl_Position = vec4(0, 0, 0, 1); \
         }";
 
-        var FS = "void main() { \
+        var FS = " \
+        void main() { \
             gl_FragColor = vec4(0, 0, 0, 1); \
         }";
 
         vispy.gloo.glir.call(c, ['CREATE', 'myprogram', 'Program']);
         vispy.gloo.glir.call(c, ['SHADERS', 'myprogram', VS, FS]);
+        
+        vispy.gloo.glir.call(c, ['ATTRIBUTE', 'myprogram', 'a_position', 'vec2', 'myvbo', 0, 0]);
+    
     });
 </script>
 </head> 
