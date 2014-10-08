@@ -1,6 +1,12 @@
 <html>
 <head>
+<script src="scripts/lib/jquery-2.1.1.min.js"></script>
 <script data-main="scripts/vispy" src="scripts/lib/require.js"></script>
+<script>
+require(["vispy"], function(vispy) {
+    vispy.init($("#mycanvas"));
+});
+</script>
 </head> 
 <body>
 

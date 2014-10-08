@@ -4,7 +4,14 @@ require.config({
   }
 });
 
-// Dependencies.
-require(["jquery", "events"], function($, events) {
+define(["jquery", "events"], function($) {
+    var vispy = function() {
+        // Constructor.
+        
+    };
 
+    vispy.prototype.init = function(canvas) {
+        console.log(canvas);
+    };
+    return new vispy();
 });
