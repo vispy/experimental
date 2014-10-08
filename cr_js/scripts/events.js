@@ -1,1 +1,7 @@
-console.log("I'm loaded!");
+define(['jquery'], function($) {
+    var events = function() {
+        // Constructor.
+        
+    };
+    return new events();
+});

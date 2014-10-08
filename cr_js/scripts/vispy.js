@@ -4,6 +4,7 @@ require.config({
   }
 });
 
-require(["jquery", "events"], function(jquery, events) {
-    console.log("hello world");
+// Dependencies.
+require(["jquery", "events"], function($, events) {
+
 });
