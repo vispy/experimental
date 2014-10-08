@@ -1,6 +1,6 @@
 /* WebGL utility functions */
 function viewport(c) {
-    c.gl.viewport(0, 0, c.width, c.height);
+    c.gl.viewport(0, 0, c.width(), c.height());
 }
 
 function clear(c, color) {

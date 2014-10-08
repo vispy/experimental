@@ -9,7 +9,7 @@
         vispy.gloo.glir.call(c, ['FUNC', 'clear', 'COLOR_BUFFER_BIT']);
 
         vispy.gloo.glir.call(c, ['CREATE', 'myvbo', 'VertexBuffer']);
-        vispy.gloo.glir.call(c, ['DATA', 'myvbo', 0, [0.,0.,.5,.5]]);
+        vispy.gloo.glir.call(c, ['DATA', 'myvbo', 0, [-0.5, -0.5, 0.5, -0.5, 0.5, 0.5]]);
 
         var VS = " \
         attribute vec2 a_position; \
@@ -28,8 +28,8 @@
         vispy.gloo.glir.call(c, ['ATTRIBUTE', 'myprogram', 'a_position',
                                  'vec2', 'myvbo', 0, 0]);
         
-        vispy.gloo.glir.call(c, ['DRAW', 'myprogram', 'LINES',
-                                 [0, 2]]);
+        vispy.gloo.glir.call(c, ['DRAW', 'myprogram', 'TRIANGLE_STRIP',
+                                 [0, 3]]);
 
     
     });
