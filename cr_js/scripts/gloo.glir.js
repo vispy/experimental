@@ -37,7 +37,7 @@ function attach_shaders(c, program, vertex, fragment) {
     }
 }
 
-function create_attribute(c, program, vbo, vbo_type,
+function create_attribute(c, program, vbo_handle, vbo_type,
                           name, attribute_type,
                           ndim, stride, offset) {
     // program: program handle
@@ -51,13 +51,12 @@ function create_attribute(c, program, vbo, vbo_type,
 
     // c.gl.useProgram(program);
     var attribute_handle = c.gl.getAttribLocation(program, name);
+    c.gl.bindBuffer(c.gl[vbo_type], vbo_handle);
 
-    c.gl.bindBuffer(c.gl[vbo_type], vbo);
-
-    c.gl.enableVertexAttribArray(attribute_handle);
-    c.gl.vertexAttribPointer(attribute_handle, ndim, 
-                             c.gl[attribute_type],
-                             false, stride, offset);
+    // c.gl.enableVertexAttribArray(attribute_handle);
+    // c.gl.vertexAttribPointer(attribute_handle, ndim, 
+    //                          c.gl[attribute_type],
+    //                          false, stride, offset);
     return attribute_handle;
 }
 
@@ -145,15 +144,25 @@ define(["jquery"], function($) {
     }
 
     glir.prototype.data = function(c, args) {
-        var vbo_id = args[0];
+        var buffer_id = args[0];
         var offset = args[1];
         var data = args[2];
-        
-        // TODO: set the data for VertexBuffer
-        // TODO: find the type
 
-        c._ns[vbo_id][2] = type;
-        c._ns[vbo_id][3] = offset;
+        var buffer_type = c._ns[buffer_id][0]; // VertexBuffer or IndexBuffer
+        var buffer_handle = c._ns[buffer_id][1];
+        var gl_type;
+        if (buffer_type == 'VertexBuffer') {
+            gl_type = c.gl['ARRAY_BUFFER'];
+        }
+        else if (buffer_type == 'IndexBuffer') {
+            gl_type = c.gl['ELEMENT_ARRAY_BUFFER'];
+        }
+
+        // HACK: proper way of dealing with data
+        data = new Float32Array(data);
+
+        c.gl.bindBuffer(gl_type, buffer_handle);
+        c.gl.bufferData(gl_type, data, c.gl.STATIC_DRAW);
     }
 
     glir.prototype.attribute = function(c, args) {
@@ -171,8 +180,8 @@ define(["jquery"], function($) {
         var ndim = _attribute_info[1];
 
         _vbo_info = c._ns[vbo_id];
-        var vbo_handle = _vbo_info[0];
-        var vbo_type = _vbo_info[1];
+        var vbo_type = _vbo_info[0];
+        var vbo_handle = _vbo_info[1];
 
         console.debug("Creating attribute '{0}' for program '{1}'.".format(
                 name, program_id

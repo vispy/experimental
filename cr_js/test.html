@@ -9,12 +9,14 @@
         vispy.gloo.glir.call(c, ['FUNC', 'clear', 'COLOR_BUFFER_BIT']);
 
         vispy.gloo.glir.call(c, ['CREATE', 'myvbo', 'VertexBuffer']);
-        vispy.gloo.glir.call(c, ['DELETE', 'myvbo']);
+        vispy.gloo.glir.call(c, ['DATA', 'myvbo', 0, [0.,0.,.5,.5]]);
+
+        // vispy.gloo.glir.call(c, ['DELETE', 'myvbo']);
 
         var VS = " \
         attribute vec2 a_position; \
         void main() { \
-            gl_Position = vec4(0, 0, 0, 1); \
+            gl_Position = vec4(a_position, 0, 1); \
         }";
 
         var FS = " \
