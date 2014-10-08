@@ -198,12 +198,15 @@ define(["jquery"], function($) {
         var mode = args[1];
         var selection = args[2];
 
-        if (len(selection) == 2) {
+        var program_handle = c._ns[program_id][1];
+
+        if (selection.length == 2) {
             var start = selection[0];
             var count = selection[1];
-            // TODO
+            c.gl.useProgram(program_handle);
+            c.gl.drawArrays(c.gl[mode], start, count);
         }     
-        else if (len(selection) == 3) {
+        else if (selection.length == 3) {
             var index_buffer_handle = selection[0];
             var index_buffer_type = selection[1];
             var count = selection[2];

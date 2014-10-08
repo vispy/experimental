@@ -15,7 +15,6 @@
         attribute vec2 a_position; \
         void main() { \
             gl_Position = vec4(a_position, 0, 1); \
-            gl_PointSize = 10.;
         }";
 
         var FS = " \
@@ -28,10 +27,9 @@
         
         vispy.gloo.glir.call(c, ['ATTRIBUTE', 'myprogram', 'a_position',
                                  'vec2', 'myvbo', 0, 0]);
-
         
-        vispy.gloo.glir.call(c, ['DRAW', 'myprogram', 'POINTS',
-                                 (0, 2)]);
+        vispy.gloo.glir.call(c, ['DRAW', 'myprogram', 'LINES',
+                                 [0, 2]]);
 
     
     });
