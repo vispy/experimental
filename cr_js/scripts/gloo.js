@@ -26,8 +26,11 @@ define(["jquery", "gloo.glir"], function($, glir) {
 
     };
 
+    gloo.prototype.clear = clear;
+
     gloo.prototype.init = function(c) {
         init_webgl(c);
+        this.glir.init(c);
     };
 
     return new gloo();
