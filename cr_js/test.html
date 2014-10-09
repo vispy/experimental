@@ -13,8 +13,10 @@ require(["vispy"], function(vispy) {
     }";
 
     var FS = " \
+    uniform vec3 u_color; \
     void main() { \
-        gl_FragColor = vec4(1, 1, 1, 1); \
+        gl_FragColor = vec4(u_color, 1); \
+        gl_FragColor.r = 1.; \
     }";
 
     c.on_initialize(function (event) {
@@ -25,6 +27,7 @@ require(["vispy"], function(vispy) {
         vispy.gloo.glir.call(c, ['SHADERS', 'myprogram', VS, FS]);
         vispy.gloo.glir.call(c, ['ATTRIBUTE', 'myprogram', 'a_position',
                                  'vec2', 'myvbo', 0, 0]);
+        vispy.gloo.glir.call(c, ['CREATE', 'u_color', 'Uniform']);
     });
 
     c.on_resize(function(event) {
@@ -63,8 +66,8 @@ require(["vispy"], function(vispy) {
 body, #mycanvas {
     /*width: 100%;*/
     /*height: 100%;*/
-    width: 600px;
-    height: 400px;
+    width: 800px;
+    height: 600px;
     margin: 0;
     padding: 0;
 }
