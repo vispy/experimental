@@ -158,6 +158,8 @@ VispyCanvas.prototype.resize = function(size) {
         var size = [this.$el.width(), this.$el.height()];
     }
     var event = gen_resize_event(this, size);
+    this.gl.canvas.width = size[0];
+    this.gl.canvas.height = size[1];
     this._resize(event);
 };
 
@@ -167,7 +169,8 @@ function init_app(c) {
 
     /* Main VispyCanvas methods */
     c.$el.resizable(
-        {resize: function(event, ui) {
+        {resize: 
+            function(event, ui) {
                 c.resize([ui.size.width, ui.size.height]);
             }
         }

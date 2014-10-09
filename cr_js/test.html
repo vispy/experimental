@@ -28,7 +28,8 @@
         });
 
         c.on_resize(function(event) {
-            vispy.gloo.glir.call(c, ['FUNC', 'viewport', 0, 0, event.size[0], event.size[1]]);
+            vispy.gloo.glir.call(c, ['FUNC', 'viewport', 0, 0, c.gl.canvas.width, c.gl.canvas.height]);
+            this.paint();
         });
 
         c.on_paint(function(event) {
@@ -40,13 +41,12 @@
 
         c.initialize();
         c.resize();
-        c.paint();
     });
 </script>
 </head> 
 <body>
 
-<canvas id="mycanvas" width="600" height="400"></canvas>
+<canvas id="mycanvas" style="width: 600px; height: 400px;"></canvas>
 
 </body>
 </html>
