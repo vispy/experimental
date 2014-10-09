@@ -38,7 +38,7 @@ function gen_mouse_event(c, e, type) {
         var button = e.button;
     else
         button = null;
-    var pos = get_pos(c, e);
+    var pos = get_pos(c.$el, e);
     var modifiers = get_modifiers(e);
     var press_event = c._eventinfo.press_event;
     var last_event = c._eventinfo.last_event;
@@ -52,6 +52,30 @@ function gen_mouse_event(c, e, type) {
         'press_event': press_event,
         
         'last_event': last_event,  // WARNING: recursion problems?
+    }
+    return event;
+}
+
+function gen_resize_event(c, size) {
+    // var canvas = c.$el.get(0);
+    // console.log(c);
+    var event = {
+        'type': 'resize',
+        'size': size,//[c.clientWidth, c.clientHeight]
+    }
+    return event;
+}
+
+function gen_paint_event(c) {
+    var event = {
+        'type': 'paint',
+    }
+    return event;
+}
+
+function gen_initialize_event(c) {
+    var event = {
+        'type': 'initialize',
     }
     return event;
 }
@@ -70,29 +94,90 @@ function gen_key_event(c, e, type) {
 }
 
 
+
+/* Internal callback functions */
+VispyCanvas.prototype._mouse_press = function(e) { };
+VispyCanvas.prototype._mouse_release = function(e) { };
+VispyCanvas.prototype._mouse_move = function(e) { };
+VispyCanvas.prototype._mouse_wheel = function(e) { };
+VispyCanvas.prototype._mouse_click = function(e) { };
+VispyCanvas.prototype._mouse_dblclick = function(e) { };
+
+VispyCanvas.prototype._key_press = function(e) { };
+VispyCanvas.prototype._key_release = function(e) { };
+
+VispyCanvas.prototype._initialize = function(e) { };
+VispyCanvas.prototype._resize = function(e) { };
+VispyCanvas.prototype._paint = function(e) { };
+
+
+
+/* Registering handlers */
+VispyCanvas.prototype.on_mouse_press = function(f) { 
+    this._mouse_press = f; 
+};
+VispyCanvas.prototype.on_mouse_release = function(f) { 
+    this._mouse_release = f; 
+};
+VispyCanvas.prototype.on_mouse_move = function(f) { 
+    this._mouse_move = f; 
+};
+VispyCanvas.prototype.on_mouse_wheel = function(f) { 
+    this._mouse_wheel = f; 
+};
+VispyCanvas.prototype.on_mouse_dblclick = function(f) { 
+    this._mouse_dblclick = f; 
+};
+VispyCanvas.prototype.on_key_press = function(f) { 
+    this._key_press = f; 
+};
+VispyCanvas.prototype.on_key_release = function(f) { 
+    this._key_release = f; 
+};
+VispyCanvas.prototype.on_initialize = function(f) {
+    this._initialize = f;
+};
+VispyCanvas.prototype.on_resize = function(f) { 
+    this._resize = f; 
+};
+VispyCanvas.prototype.on_paint = function(f) { 
+    this._paint = f; 
+};
+
+
+VispyCanvas.prototype.initialize = function() {
+    var event = gen_initialize_event(this);
+    this._initialize(event);
+};
+VispyCanvas.prototype.paint = function() {
+    var event = gen_paint_event(this);
+    this._paint(event);
+};
+VispyCanvas.prototype.resize = function(size) {
+    if (size == undefined) {
+        var size = [this.$el.width(), this.$el.height()];
+    }
+    var event = gen_resize_event(this, size);
+    this._resize(event);
+};
+
+
 /* Canvas initialization */
 function init_app(c) {
 
-    /* Registering handlers */
-    c.on_mouse_press = function(f) { c.mouse_press = f; };
-    c.on_mouse_release = function(f) { c.mouse_release = f; };
-    c.on_mouse_move = function(f) { c.mouse_move = f; };
-    c.on_mouse_wheel = function(f) { c.mouse_wheel = f; };
-    c.on_mouse_dblclick = function(f) { c.mouse_dblclick = f; };
-    c.on_key_press = function(f) { c.key_press = f; };
-    c.on_key_release = function(f) { c.key_release = f; };
+    /* Main VispyCanvas methods */
+    c.$el.resizable(
+        {resize: function(event, ui) {
+                c.resize([ui.size.width, ui.size.height]);
+            }
+        }
+    );
 
-    /* Callback functions */
-    c.mouse_press = function(e) { };
-    c.mouse_release = function(e) { };
-    c.mouse_move = function(e) { };
-    c.mouse_wheel = function(e) { };
-    c.mouse_click = function(e) { };
-    c.mouse_dblclick = function(e) { };
-    
-    c.key_press = function(e) { };
-    c.key_release = function(e) { };
-    
+    c.$el.resize(function(e) {
+            c.resize([e.width(), e.height()]);
+        }
+    );
+
     // This object stores some state necessary to generate the appropriate
     // events.
     c._eventinfo = {
@@ -112,87 +197,88 @@ function init_app(c) {
     // button is pressed, or the left button is pressed.
     c._eventinfo.is_button_pressed = 0;
     
-    c.mousemove(function(e) {
+    c.$el.mousemove(function(e) {
         var event = gen_mouse_event(c, e, 'mouse_move');
         
         // Vispy callbacks.
-        c.mouse_move(event);
+        c._mouse_move(event);
         
         // Save the last event.
         c._eventinfo.last_event = event;
     });
-    c.mousedown(function(e) {
+    c.$el.mousedown(function(e) {
         ++c._eventinfo.is_button_pressed;
         var event = gen_mouse_event(c, e, 'mouse_release');
         
         // Vispy callbacks.
-        c.mouse_press(event);
+        c._mouse_press(event);
         
         // Save the last press event.
         c._eventinfo.press_event = event;
         // Save the last event.
         c._eventinfo.last_event = event;
     });
-    c.mouseup(function(e) {
+    c.$el.mouseup(function(e) {
         --c._eventinfo.is_button_pressed;
         var event = gen_mouse_event(c, e, 'mouse_press');
         
         // Vispy callbacks.
-        c.mouse_release(event);
+        c._mouse_release(event);
         
         // Reset the last press event.
         c._eventinfo.press_event = null;
         // Save the last event.
         c._eventinfo.last_event = event;
     });
-    c.click(function(e) {
+    c.$el.click(function(e) {
     
         // Reset the last press event.
         c._eventinfo.press_event = null;
     });
-    c.dblclick(function(e) {
+    c.$el.dblclick(function(e) {
     
         // Reset the last press event.
         c._eventinfo.press_event = null;
     });
-    c.mousewheel(function(e) {
+    c.$el.mousewheel(function(e) {
         var event = gen_mouse_event(c, e, 'mouse_wheel');
         event.delta = [e.wheelDeltaX / 100., e.wheelDeltaY / 100.];
         
         // Vispy callbacks.
-        c.mouse_wheel(event);
+        c._mouse_wheel(event);
         
         // Save the last event.
         c._eventinfo.last_event = event;
     });
     
+    // HACK: this is to extend the mouse events outside the canvas
     // document.onmousemove = c.onmousemove;
     // document.onmousedown = c.onmousedown;
     // document.onmouseup = c.onmouseup;
     
-    c.keypress(function(e) {
+    c.$el.keypress(function(e) {
         var event = gen_key_event(c, e, 'key_press');
         
         // Vispy callbacks.
-        c.key_press(event);
+        c._key_press(event);
         
         // Save the last event.
         c._eventinfo.last_event = event;
     });
-    c.keyup(function(e) {
+    c.$el.keyup(function(e) {
         var event = gen_key_event(c, e, 'key_release');
         
         // Vispy callbacks.
-        c.key_release(event);
+        c._key_release(event);
         
         // Save the last event.
         c._eventinfo.last_event = event;
     });
-    c.keydown(function(e) {
+    c.$el.keydown(function(e) {
         //c._eventinfo.modifiers = get_modifiers(e);
     });
     
-    c.mouseout(function(e) {
+    c.$el.mouseout(function(e) {
     });
 }
 

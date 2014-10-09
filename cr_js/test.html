@@ -1,12 +1,10 @@
 <html>
 <head>
-<script src="scripts/lib/jquery-2.1.1.min.js"></script>
+<link rel="stylesheet" href="scripts/lib/jquery-ui/jquery-ui.min.css">
 <script data-main="scripts/vispy" src="scripts/lib/require.js"></script>
 <script>
     require(["vispy"], function(vispy) {
         c = vispy.init("#mycanvas");
-        var w = c.width();
-        var h = c.height();
 
         var VS = " \
         attribute vec2 a_position; \
@@ -19,22 +17,30 @@
             gl_FragColor = vec4(1, 1, 1, 1); \
         }";
 
-        /* INITIALIZE */
-        vispy.gloo.glir.call(c, ['CREATE', 'myvbo', 'VertexBuffer']);
-        vispy.gloo.glir.call(c, ['DATA', 'myvbo', 0, [-0.5, -0.5, 0.5, -0.5, 0.5, 0.5]]);
+        c.on_initialize(function (event) {
+            vispy.gloo.glir.call(c, ['CREATE', 'myvbo', 'VertexBuffer']);
+            vispy.gloo.glir.call(c, ['DATA', 'myvbo', 0, [-0.5, -0.5, 0.5, -0.5, 0.5, 0.5]]);
 
-        vispy.gloo.glir.call(c, ['CREATE', 'myprogram', 'Program']);
-        vispy.gloo.glir.call(c, ['SHADERS', 'myprogram', VS, FS]);
-        vispy.gloo.glir.call(c, ['ATTRIBUTE', 'myprogram', 'a_position',
-                                 'vec2', 'myvbo', 0, 0]);
+            vispy.gloo.glir.call(c, ['CREATE', 'myprogram', 'Program']);
+            vispy.gloo.glir.call(c, ['SHADERS', 'myprogram', VS, FS]);
+            vispy.gloo.glir.call(c, ['ATTRIBUTE', 'myprogram', 'a_position',
+                                     'vec2', 'myvbo', 0, 0]);
+        });
 
-        /* DRAW */
-        vispy.gloo.glir.call(c, ['FUNC', 'clearColor', 0, 0, 0, 1]);
-        vispy.gloo.glir.call(c, ['FUNC', 'clear', 'COLOR_BUFFER_BIT']);        
-        vispy.gloo.glir.call(c, ['FUNC', 'viewport', 0, 0, w, h]);
-        vispy.gloo.glir.call(c, ['DRAW', 'myprogram', 'TRIANGLE_STRIP',
-                                 [0, 3]]);
-    
+        c.on_resize(function(event) {
+            vispy.gloo.glir.call(c, ['FUNC', 'viewport', 0, 0, event.size[0], event.size[1]]);
+        });
+
+        c.on_paint(function(event) {
+            vispy.gloo.glir.call(c, ['FUNC', 'clearColor', 0, 0, 0, 1]);
+            vispy.gloo.glir.call(c, ['FUNC', 'clear', 'COLOR_BUFFER_BIT']);
+            vispy.gloo.glir.call(c, ['DRAW', 'myprogram', 'TRIANGLE_STRIP',
+                                     [0, 3]]);
+        });
+
+        c.initialize();
+        c.resize();
+        c.paint();
     });
 </script>
 </head> 

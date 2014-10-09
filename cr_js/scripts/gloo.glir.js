@@ -82,8 +82,11 @@ function get_attribute_info(type) {
 /* Creation of vispy.gloo.glir */
 define(["jquery"], function($) {
     var glir = function() {
+        var that = this;
         // Constructor.
-
+        VispyCanvas.prototype.call = function(command) {
+            that.call(this, command);
+        };
     };
 
     glir.prototype.init = function(c) {
@@ -216,7 +219,7 @@ define(["jquery"], function($) {
 
     glir.prototype.func = function(c, args) {
         var name = args[0];
-        console.debug("Calling {0}.".format(name));
+        console.debug("Calling {0}({1}).".format(name, args.slice(1)));
 
         // Replace strings by global GL variables.
         for (var i = 1; i < args.length; i++) {
