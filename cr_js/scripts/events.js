@@ -164,6 +164,28 @@ VispyCanvas.prototype.resize = function(size) {
     this._resize(event);
 };
 
+VispyCanvas.prototype.toggle_fullscreen = function() {
+    if (screenfull.enabled) {
+        if(screenfull.isFullscreen) {
+            screenfull.exit();
+            this.resize(this._size);
+        }
+        else {
+            this._size = [this.$el.width(), this.$el.height()];
+            screenfull.request(this.$el[0]);
+            this.resize([screen.width, screen.height]);
+        }
+    }
+}
+
+VispyCanvas.prototype.resizable = function() {
+    var that = this;
+    this.$el.resizable({
+        resize: function(event, ui) {
+            that.resize([ui.size.width, ui.size.height]);
+        }
+    });
+}
 
 /* Canvas initialization */
 function init_app(c) {
@@ -279,7 +301,7 @@ function init_app(c) {
 
 
 /* Creation of vispy.events */
-define(["jquery", "jquery-mousewheel"], function($, _) {
+define(["jquery", "jquery-mousewheel", "jquery-ui", "screenfull"], function($) {
     var events = function() {
         // Constructor.
 

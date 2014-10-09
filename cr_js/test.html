@@ -3,14 +3,7 @@
 <link rel="stylesheet" href="scripts/lib/jquery-ui/jquery-ui.min.css">
 <script data-main="scripts/vispy" src="scripts/lib/require.js"></script>
 <script>
-require.config({
-  paths: {
-    "jquery-ui": "lib/jquery-ui/jquery-ui.min",
-    "screenfull": "lib/screenfull.min",
-  }
-});
-
-require(["vispy", "jquery-ui", "screenfull"], function(vispy) {
+require(["vispy"], function(vispy) {
     c = vispy.init("#mycanvas");
 
     var VS = " \
@@ -49,26 +42,18 @@ require(["vispy", "jquery-ui", "screenfull"], function(vispy) {
     c.initialize();
     c.resize();
 
-    window.onresize = function(event) {
-        c.resize();
-    };
+    // Toggle comments below to have the canvas span the entire window.
+    // Also, need to set #mycanvas width and height to 100% in the CSS.
+    c.resizable();
+    // window.onresize = function(event) {
+    //     c.resize();
+    // };
 
+    // Toggle fullscreen for the canvas when 'f' is pressed.
     $(window).keypress(function(e) {
-        var char = String.fromCharCode(e.which);
-        if (char == 'f') {
-            if (screenfull.enabled) {
-                if(screenfull.isFullscreen) {
-                    screenfull.exit();
-                    c.resize(c._size);
-                }
-                else {
-                    c._size = [c.$el.width(), c.$el.height()];
-                    screenfull.request(c.$el[0]);
-                    c.resize([screen.width, screen.height]);
-                }
-                
-                
-            }
+        if (String.fromCharCode(e.which) == 'f') {
+            c.$el.width("100%").height("100%");
+            c.toggle_fullscreen();
         }
     });
 
@@ -76,22 +61,16 @@ require(["vispy", "jquery-ui", "screenfull"], function(vispy) {
 </script>
 <style>
 body, #mycanvas {
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    padding: 0;
-}
-#mywrapper {
-    width: 100%;
-    height: 100%;
+    /*width: 100%;*/
+    /*height: 100%;*/
+    width: 600px;
+    height: 400px;
     margin: 0;
     padding: 0;
 }
 </style>
 </head> 
 <body>
-<div id="mywrapper">
 <canvas id="mycanvas"></canvas>
-</div>
 </body>
 </html>

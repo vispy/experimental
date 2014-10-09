@@ -3,6 +3,8 @@ require.config({
   paths: {
     "jquery": "lib/jquery-ui/external/jquery/jquery",
     "jquery-mousewheel": "lib/jquery.mousewheel.min",
+    "jquery-ui": "lib/jquery-ui/jquery-ui.min",
+    "screenfull": "lib/screenfull.min",
   }
 });
 
