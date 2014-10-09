@@ -153,6 +153,7 @@ VispyCanvas.prototype.paint = function() {
     var event = gen_paint_event(this);
     this._paint(event);
 };
+VispyCanvas.prototype.update = VispyCanvas.prototype.paint;
 VispyCanvas.prototype.resize = function(size) {
     if (size == undefined) {
         var size = [this.$el.width(), this.$el.height()];
@@ -166,15 +167,6 @@ VispyCanvas.prototype.resize = function(size) {
 
 /* Canvas initialization */
 function init_app(c) {
-
-    /* Main VispyCanvas methods */
-    c.$el.resizable(
-        {resize: 
-            function(event, ui) {
-                c.resize([ui.size.width, ui.size.height]);
-            }
-        }
-    );
 
     c.$el.resize(function(e) {
             c.resize([e.width(), e.height()]);
