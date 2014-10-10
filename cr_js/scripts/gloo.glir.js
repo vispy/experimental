@@ -19,7 +19,7 @@ function compile_shader(c, type, source) {
 
     if (!c.gl.getShaderParameter(shader, c.gl.COMPILE_STATUS))
     {
-        console.log(c.gl.getShaderInfoLog(shader));
+        console.error(c.gl.getShaderInfoLog(shader));
         return null;
     }
 
@@ -67,10 +67,10 @@ function create_uniform(c, program_handle, name) {
 
 function set_uniform(c, uniform_handle, uniform_function, value) {
 
-    // HACK: proper way of dealing with data
-    value = new Float32Array(value);
+    // Get a TypedArray.
+    array = to_typed_array(value);
 
-    c.gl[uniform_function](uniform_handle, value);
+    c.gl[uniform_function](uniform_handle, array);
     // TODO: matrix
     // this.c.gl[this._ufunction](this._handle, false, this.data);
 }
@@ -118,6 +118,49 @@ function get_uniform_function(type) {
 
     return 'uniform{0}{1}v'.format(ndim, type_char);
 }
+
+
+/* Data functions */
+var _typed_array_map = {
+    'float32': Float32Array,
+    'int16': Int16Array,
+    'int32': Int32Array,
+    // TODO
+};
+
+
+
+function to_typed_array(data) {
+
+
+    // Return a TypedArray from a JSON object describing a data buffer.
+    // storage_type is one of 'javascript_array', 'javascript_typed_array', 
+    // 'base64', 'png'
+    var storage_type = data["storage_type"];
+
+    // data can also be just a normal typed array, in which case we just return
+    // the argument value.
+    if (storage_type == undefined) {
+        return data;
+    }
+
+    var data_type = data["data_type"];
+    var contents = data["buffer"];
+
+    if (storage_type == "javascript_array") {
+        // A regular JavaScript array, the type must be specified in 'data_type'.
+        return _typed_array_map[data_type](contents);
+    }
+    else if (storage_type == "javascript_typed_array") {
+        // A JavaScript Typedarray.
+        return contents;
+    }
+    if (storage_type == "base64") {
+        // A base64-encoded buffer.
+        // TODO
+    }
+}
+
 
 /* Creation of vispy.gloo.glir */
 define(["jquery"], function($) {
@@ -215,11 +258,12 @@ define(["jquery"], function($) {
             gl_type = c.gl['ELEMENT_ARRAY_BUFFER'];
         }
 
-        // HACK: proper way of dealing with data
-        data = new Float32Array(data);
+        // Get a TypedArray.
+        var array = to_typed_array(data);
 
         c.gl.bindBuffer(gl_type, buffer_handle);
-        c.gl.bufferData(gl_type, data, c.gl.STATIC_DRAW);
+
+        c.gl.bufferData(gl_type, array, c.gl.STATIC_DRAW);
     }
 
     glir.prototype.attribute = function(c, args) {
@@ -262,7 +306,7 @@ define(["jquery"], function($) {
         var program_handle = c._ns[program_id][1];
 
         c.gl.useProgram(program_handle);
-        
+
         // Check the cache.
         if (c._ns[program_id][3][name] == undefined) {
             // If necessary, we create the uniform and cache both its handle and

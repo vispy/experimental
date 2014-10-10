@@ -21,13 +21,13 @@ require(["vispy"], function(vispy) {
 
     c.on_initialize(function (event) {
         c.call(['CREATE', 'myvbo', 'VertexBuffer']);
-        c.call(['DATA', 'myvbo', 0, [-0.5, -0.5, 0.5, -0.5, 0.5, 0.5]]);
+        c.call(['DATA', 'myvbo', 0, new Float32Array([-0.5, -0.5, 0.5, -0.5, 0.5, 0.5])]);
 
         c.call(['CREATE', 'myprogram', 'Program']);
         c.call(['SHADERS', 'myprogram', VS, FS]);
         c.call(['ATTRIBUTE', 'myprogram', 'a_position',
                                  'vec2', 'myvbo', 0, 0]);
-        c.call(['UNIFORM', 'myprogram', 'u_color', 'vec3', [1., 1., 1.]]);
+        c.call(['UNIFORM', 'myprogram', 'u_color', 'vec3', new Float32Array([1., 1., 1.])]);
     });
 
     c.on_resize(function(event) {
