@@ -121,18 +121,6 @@ function get_uniform_function(type) {
 }
 
 
-/* Data functions */
-var _typed_array_map = {
-    'float32': Float32Array,
-    'int8': Int8Array,
-    'int16': Int16Array,
-    'int32': Int32Array,
-    'uint8': Uint8Array,
-    'uint16': Uint16Array,
-    'uint32': Uint32Array,
-};
-
-
 /* Creation of vispy.gloo.glir */
 define(["jquery"], function($) {
     var glir = function() {
