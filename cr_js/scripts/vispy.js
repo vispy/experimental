@@ -13,7 +13,7 @@ function VispyCanvas($el) {
 }
 
 // Vispy library entry point.
-define(["jquery", "events", "gloo", "util"], 
+define(["jquery", "events", "gloo", "util", "data"], 
     function($, events, gloo) {
         var vispy = function() {
             // Constructor of the Vispy library.
