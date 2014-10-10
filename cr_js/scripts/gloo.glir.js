@@ -59,20 +59,19 @@ function create_attribute(c, program, vbo_handle, vbo_type,
     return attribute_handle;
 }
 
-// REFACTOR: put these two functions in glir
-function create_uniform(c, program_handle, name) {
-    uniform_handle = c.gl.getUniformLocation(program_handle, name)
-    return uniform_handle;
-}
-
 function set_uniform(c, uniform_handle, uniform_function, value) {
 
     // Get a TypedArray.
     array = to_typed_array(value);
 
-    c.gl[uniform_function](uniform_handle, array);
-    // TODO: matrix
-    // this.c.gl[this._ufunction](this._handle, false, this.data);
+    if (uniform_function.indexOf('Matrix') > 0) {
+        // Matrix uniforms.
+        c.gl[uniform_function](uniform_handle, false, array);
+    }
+    else {
+        // Scalar uniforms.
+        c.gl[uniform_function](uniform_handle, array);
+    }
 }
 
 function get_attribute_info(type) {
@@ -123,13 +122,16 @@ function get_uniform_function(type) {
 /* Data functions */
 var _typed_array_map = {
     'float32': Float32Array,
+    'int8': Int8Array,
     'int16': Int16Array,
     'int32': Int32Array,
-    // TODO
+    'uint8': Uint8Array,
+    'uint16': Uint16Array,
+    'uint32': Uint32Array,
 };
 
 
-
+// REFACTOR: put in data.js
 function to_typed_array(data) {
 
 
@@ -156,8 +158,7 @@ function to_typed_array(data) {
         return contents;
     }
     if (storage_type == "base64") {
-        // A base64-encoded buffer.
-        // TODO
+        // TODO: base64-encoded buffer. Need to decode and convert to a typed array
     }
 }
 
@@ -314,13 +315,13 @@ define(["jquery"], function($) {
             console.debug("Creating uniform '{0}' for program '{1}'.".format(
                     name, program_id
                 ));
-            var uniform_handle = create_uniform(c, program_handle, name);
+            var uniform_handle = c.gl.getUniformLocation(program_handle, name);
             var uniform_function = get_uniform_function(type);
             // We cache the uniform handle and the uniform function name as well.
             c._ns[program_id][3][name] = [uniform_handle, uniform_function];
         }
-        console.debug("Setting uniform '{0}' to value '{1}'.".format(
-                name, value
+        console.debug("Setting uniform '{0}' to '{1}' with {2} elements.".format(
+                name, value, value.length
             ));
         var uniform_info = c._ns[program_id][3][name];
         var uniform_handle = uniform_info[0];
@@ -345,7 +346,7 @@ define(["jquery"], function($) {
             var index_buffer_handle = selection[0];
             var index_buffer_type = selection[1];
             var count = selection[2];
-            // TODO
+            // TODO: index buffer
         }
     }
 
