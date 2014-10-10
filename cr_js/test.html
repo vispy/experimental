@@ -16,30 +16,36 @@ require(["vispy"], function(vispy) {
     uniform vec3 u_color; \
     void main() { \
         gl_FragColor = vec4(u_color, 1); \
-        gl_FragColor.r = 1.; \
     }";
 
     c.on_initialize(function (event) {
-        c.call(['CREATE', 'myvbo', 'VertexBuffer']);
-        c.call(['DATA', 'myvbo', 0, new Float32Array([-0.5, -0.5, 0.5, -0.5, 0.5, 0.5])]);
+        this.call(['CREATE', 'myvbo', 'VertexBuffer']);
+        this.call(['DATA', 'myvbo', 0, new Float32Array([-0.5, -0.5, 0.5, -0.5, 0.5, 0.5])]);
 
-        c.call(['CREATE', 'myprogram', 'Program']);
-        c.call(['SHADERS', 'myprogram', VS, FS]);
-        c.call(['ATTRIBUTE', 'myprogram', 'a_position',
+        this.call(['CREATE', 'myprogram', 'Program']);
+        this.call(['SHADERS', 'myprogram', VS, FS]);
+        this.call(['ATTRIBUTE', 'myprogram', 'a_position',
                                  'vec2', 'myvbo', 0, 0]);
-        c.call(['UNIFORM', 'myprogram', 'u_color', 'vec3', new Float32Array([1., 1., 1.])]);
+        this.call(['UNIFORM', 'myprogram', 'u_color', 'vec3', new Float32Array([1., 1., 1.])]);
     });
 
     c.on_resize(function(event) {
-        c.call(['FUNC', 'viewport', 0, 0, event.size[0], event.size[1]]);
+        this.call(['FUNC', 'viewport', 0, 0, event.size[0], event.size[1]]);
         this.update();
     });
 
     c.on_paint(function(event) {
-        c.call(['FUNC', 'clearColor', 0, 0, 0, 1]);
-        c.call(['FUNC', 'clear', 'COLOR_BUFFER_BIT']);
-        c.call(['DRAW', 'myprogram', 'TRIANGLE_STRIP',
+        this.call(['FUNC', 'clearColor', 0, 0, 0, 1]);
+        this.call(['FUNC', 'clear', 'COLOR_BUFFER_BIT']);
+        this.call(['DRAW', 'myprogram', 'TRIANGLE_STRIP',
                                  [0, 3]]);
+    });
+
+    c.on_mouse_move(function(event) {
+        var u = event.pos[0] / this.width;
+        var v = event.pos[1] / this.height;
+        this.call(['UNIFORM', 'myprogram', 'u_color', 'vec3', new Float32Array([u, v, 1.])]);
+        this.update();
     });
 
     c.initialize();

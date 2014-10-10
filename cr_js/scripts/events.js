@@ -38,7 +38,7 @@ function gen_mouse_event(c, e, type) {
         var button = e.button;
     else
         button = null;
-    var pos = get_pos(c.$el, e);
+    var pos = get_pos(c.$el.get(0), e);
     var modifiers = get_modifiers(e);
     var press_event = c._eventinfo.press_event;
     var last_event = c._eventinfo.last_event;
@@ -161,6 +161,9 @@ VispyCanvas.prototype.resize = function(size) {
     var event = gen_resize_event(this, size);
     this.gl.canvas.width = size[0];
     this.gl.canvas.height = size[1];
+    this.size = size;
+    this.width = size[0];
+    this.height = size[1];
     this._resize(event);
 };
 
