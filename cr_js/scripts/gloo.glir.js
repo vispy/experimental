@@ -59,6 +59,22 @@ function create_attribute(c, program, vbo_handle, vbo_type,
     return attribute_handle;
 }
 
+// REFACTOR: put these two functions in glir
+function create_uniform(c, program_handle, name) {
+    uniform_handle = c.gl.getUniformLocation(program_handle, name)
+    return uniform_handle;
+}
+
+function set_uniform(c, uniform_handle, uniform_function, value) {
+
+    // HACK: proper way of dealing with data
+    value = new Float32Array(value);
+
+    c.gl[uniform_function](uniform_handle, value);
+    // TODO: matrix
+    // this.c.gl[this._ufunction](this._handle, false, this.data);
+}
+
 function get_attribute_info(type) {
     // type: vec2, ivec3, float, etc.
     
@@ -69,14 +85,38 @@ function get_attribute_info(type) {
     }
     
     // Find ndim.
+    var ndim;
     if (type == 'int' || type == 'float') {
-        var ndim = 1;
+        ndim = 1;
     }
     else {
         ndim = parseInt(type.slice(-1));
     }
 
     return [gl_type, ndim];
+}
+
+function get_uniform_function(type) {
+    // Find OpenGL attribute type.
+    var type_char;
+    var ndim;
+    if (type[0] == 'i' || type == 'int') {
+        type_char = 'i';
+    }
+    else {
+        type_char = 'f';
+    }
+    
+    // Find ndim.
+    var ndim;
+    if (type == 'int' || type == 'float') {
+        ndim = 1;
+    }
+    else {
+        ndim = parseInt(type.slice(-1));
+    }
+
+    return 'uniform{0}{1}v'.format(ndim, type_char);
 }
 
 /* Creation of vispy.gloo.glir */
@@ -91,7 +131,22 @@ define(["jquery"], function($) {
 
     glir.prototype.init = function(c) {
         // Namespace with the table of all symbols used by GLIR.
+
+        // The key is user-specified and is name the **id**.
+        // The WebGL internal handle is called the **handle**. It is always the
+        // second element in each item of the symbol table.
+
         // For each id, it is a pair (object_type, webgl_handle)
+        // 0: type ('VertexBuffer', 'Program', etc.)
+        // 1: handle
+        //
+        // Buffers:
+        // 2: type
+        // 3: offset
+        //
+        // Programs:
+        // 2: attributes
+        // 3: uniforms
         c._ns = {};
     }
 
@@ -109,7 +164,7 @@ define(["jquery"], function($) {
         }
         else if (cls == 'Program') {
             console.debug("Creating program '{0}'.".format(id));
-            c._ns[id] = [cls, c.gl.createProgram()];
+            c._ns[id] = [cls, c.gl.createProgram(), {}, {}]; // attributes, uniforms
         }
     };
 
@@ -177,7 +232,9 @@ define(["jquery"], function($) {
 
         var program_handle = c._ns[program_id][1];
 
-        _attribute_info = get_attribute_info(type);
+
+        // REFACTOR: integrate this into `create_attribute`
+        var _attribute_info = get_attribute_info(type);
         var attribute_type = _attribute_info[0];
         var ndim = _attribute_info[1];
 
@@ -188,12 +245,43 @@ define(["jquery"], function($) {
         console.debug("Creating attribute '{0}' for program '{1}'.".format(
                 name, program_id
             ));
-        var attribute_id = create_attribute(c, program_handle, 
+        var attribute_handle = create_attribute(c, program_handle, 
             vbo_handle, 'ARRAY_BUFFER',
             name, attribute_type, ndim, stride, offset);
 
-        // QUESTION: attributes don't have a user-specified id?
-        // c._ns[] = ['Attribute', attribute_id];
+        // Store the attribute handle in the attributes array of the program.
+        c._ns[program_id][2][name] = attribute_handle;
+    }
+
+    glir.prototype.uniform = function(c, args) {
+        var program_id = args[0];  // program id
+        var name = args[1];
+        var type = args[2];
+        var value = args[3];
+        
+        var program_handle = c._ns[program_id][1];
+
+        c.gl.useProgram(program_handle);
+        
+        // Check the cache.
+        if (c._ns[program_id][3][name] == undefined) {
+            // If necessary, we create the uniform and cache both its handle and
+            // GL function.
+            console.debug("Creating uniform '{0}' for program '{1}'.".format(
+                    name, program_id
+                ));
+            var uniform_handle = create_uniform(c, program_handle, name);
+            var uniform_function = get_uniform_function(type);
+            // We cache the uniform handle and the uniform function name as well.
+            c._ns[program_id][3][name] = [uniform_handle, uniform_function];
+        }
+        console.debug("Setting uniform '{0}' to value '{1}'.".format(
+                name, value
+            ));
+        var uniform_info = c._ns[program_id][3][name];
+        var uniform_handle = uniform_info[0];
+        var uniform_function = uniform_info[1];
+        set_uniform(c, uniform_handle, uniform_function, value);
     }
 
     glir.prototype.draw = function(c, args) {

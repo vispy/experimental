@@ -27,7 +27,7 @@ require(["vispy"], function(vispy) {
         vispy.gloo.glir.call(c, ['SHADERS', 'myprogram', VS, FS]);
         vispy.gloo.glir.call(c, ['ATTRIBUTE', 'myprogram', 'a_position',
                                  'vec2', 'myvbo', 0, 0]);
-        vispy.gloo.glir.call(c, ['CREATE', 'u_color', 'Uniform']);
+        vispy.gloo.glir.call(c, ['UNIFORM', 'myprogram', 'u_color', 'vec3', [1., 1., 1.]]);
     });
 
     c.on_resize(function(event) {
