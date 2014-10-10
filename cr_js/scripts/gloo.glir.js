@@ -159,7 +159,8 @@ define(["jquery"], function($) {
             console.debug("Creating vertex buffer '{0}'.".format(id));
             c._ns[id] = {
                 object_type: cls, 
-                handle: c.gl.createBuffer()
+                handle: c.gl.createBuffer(),
+                size: 0,  // current size of the buffer
             };
         }
         else if (cls == 'Program') {
@@ -209,15 +210,16 @@ define(["jquery"], function($) {
         var buffer_id = args[0];
         var offset = args[1];
         var data = args[2];
+        var size = data.length;
 
         var buffer_type = c._ns[buffer_id].object_type; // VertexBuffer or IndexBuffer
         var buffer_handle = c._ns[buffer_id].handle;
         var gl_type;
         if (buffer_type == 'VertexBuffer') {
-            gl_type = c.gl['ARRAY_BUFFER'];
+            gl_type = c.gl.ARRAY_BUFFER;
         }
         else if (buffer_type == 'IndexBuffer') {
-            gl_type = c.gl['ELEMENT_ARRAY_BUFFER'];
+            gl_type = c.gl.ELEMENT_ARRAY_BUFFER;
         }
 
         // Get a TypedArray.
@@ -225,7 +227,20 @@ define(["jquery"], function($) {
 
         c.gl.bindBuffer(gl_type, buffer_handle);
 
-        c.gl.bufferData(gl_type, array, c.gl.STATIC_DRAW);
+        // Allocate buffer or reallocate buffer
+        if (c._ns[buffer_id].size == 0) {
+            // The existing buffer was empty: we create it.
+            console.debug("Allocating {0} elements in buffer '{1}'.".format(
+                size, buffer_id));
+            c.gl.bufferData(gl_type, array, c.gl.STATIC_DRAW);
+            c._ns[buffer_id].size = size;
+        }
+        else {
+            // We reuse the existing buffer.
+            console.debug("Updating {0} elements in buffer '{1}', offset={2}.".format(
+                size, buffer_id, offset));
+            c.gl.bufferSubData(gl_type, offset, array);
+        }
     }
 
     glir.prototype.attribute = function(c, args) {
@@ -290,6 +305,8 @@ define(["jquery"], function($) {
             var start = selection[0];
             var count = selection[1];
             c.gl.useProgram(program_handle);
+            console.debug("Rendering program '{0}' with {1}.".format(
+                program_id, mode));
             c.gl.drawArrays(c.gl[mode], start, count);
         }     
         else if (selection.length == 3) {

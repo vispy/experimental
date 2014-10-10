@@ -1,3 +1,5 @@
+// TODO: how to handle heterogeneous data types, structured arrays.
+// Probably with DataViews.
 
 // Mapping between user-friendly data type string, and typed array classes.
 var _typed_array_map = {
@@ -12,7 +14,6 @@ var _typed_array_map = {
 
 
 function to_typed_array(data) {
-
 
     // Return a TypedArray from a JSON object describing a data buffer.
     // storage_type is one of 'javascript_array', 'javascript_typed_array', 
