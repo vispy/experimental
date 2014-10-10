@@ -37,20 +37,23 @@ function attach_shaders(c, program, vertex, fragment) {
     }
 }
 
-function create_attribute(c, program, vbo_handle, vbo_type,
-                          name, attribute_type,
-                          ndim, stride, offset) {
+function create_attribute(c, program, vbo_id, name, type, stride, offset) {
     // program: program handle
+    // vbo_id
     // name: attribute name
-    // vbo: vbo handle
-    // vbo_type
-    // attribute_type: FLOAT, INT or BOOL
-    // ndim: 2, 3 or 4
+    // type: float, vec3, etc.
     // stride: 0 by default
     // offset: 0 by default
 
+    var _attribute_info = get_attribute_info(type);
+    var attribute_type = _attribute_info[0];  // FLOAT, INT or BOOL
+    var ndim = _attribute_info[1]; // 1, 2, 3 or 4
+
+    _vbo_info = c._ns[vbo_id];
+    var vbo_handle = _vbo_info[1];
+
     var attribute_handle = c.gl.getAttribLocation(program, name);
-    c.gl.bindBuffer(c.gl[vbo_type], vbo_handle);
+    c.gl.bindBuffer(c.gl.ARRAY_BUFFER, vbo_handle);
 
     c.gl.enableVertexAttribArray(attribute_handle);
     c.gl.vertexAttribPointer(attribute_handle, ndim, 
@@ -60,7 +63,6 @@ function create_attribute(c, program, vbo_handle, vbo_type,
 }
 
 function set_uniform(c, uniform_handle, uniform_function, value) {
-
     // Get a TypedArray.
     array = to_typed_array(value);
 
@@ -277,22 +279,11 @@ define(["jquery"], function($) {
 
         var program_handle = c._ns[program_id][1];
 
-
-        // REFACTOR: integrate this into `create_attribute`
-        var _attribute_info = get_attribute_info(type);
-        var attribute_type = _attribute_info[0];
-        var ndim = _attribute_info[1];
-
-        _vbo_info = c._ns[vbo_id];
-        var vbo_type = _vbo_info[0];
-        var vbo_handle = _vbo_info[1];
-
         console.debug("Creating attribute '{0}' for program '{1}'.".format(
                 name, program_id
             ));
-        var attribute_handle = create_attribute(c, program_handle, 
-            vbo_handle, 'ARRAY_BUFFER',
-            name, attribute_type, ndim, stride, offset);
+        var attribute_handle = create_attribute(c, program_handle, vbo_id,
+            name, type, stride, offset);
 
         // Store the attribute handle in the attributes array of the program.
         c._ns[program_id][2][name] = attribute_handle;
