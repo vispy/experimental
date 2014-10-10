@@ -50,7 +50,7 @@ function create_attribute(c, program, vbo_id, name, type, stride, offset) {
     var ndim = _attribute_info[1]; // 1, 2, 3 or 4
 
     _vbo_info = c._ns[vbo_id];
-    var vbo_handle = _vbo_info[1];
+    var vbo_handle = _vbo_info.handle;
 
     var attribute_handle = c.gl.getAttribLocation(program, name);
     c.gl.bindBuffer(c.gl.ARRAY_BUFFER, vbo_handle);
@@ -134,21 +134,16 @@ define(["jquery"], function($) {
     glir.prototype.init = function(c) {
         // Namespace with the table of all symbols used by GLIR.
 
-        // The key is user-specified and is name the **id**.
-        // The WebGL internal handle is called the **handle**. It is always the
-        // second element in each item of the symbol table.
+        // The key is user-specified and is named the **id**.
+        // The WebGL internal handle is called the **handle**.
 
-        // For each id, it is a pair (object_type, webgl_handle)
-        // 0: type ('VertexBuffer', 'Program', etc.)
-        // 1: handle
-        //
-        // Buffers:
-        // 2: type
-        // 3: offset
-        //
-        // Programs:
-        // 2: attributes
-        // 3: uniforms
+        // For each id key, the value is an object with the following properties:
+        // * object_type ('VertexBuffer', 'Program', etc.)
+        // * handle (the WebGL internal handle, for all objects)
+        // * data_type (for Buffers)
+        // * offset (for Buffers)
+        // * attributes (for Programs)
+        // * uniforms (for Programs)
         c._ns = {};
     }
 
@@ -162,18 +157,26 @@ define(["jquery"], function($) {
         var cls = args[1];
         if (cls == 'VertexBuffer') {
             console.debug("Creating vertex buffer '{0}'.".format(id));
-            c._ns[id] = [cls, c.gl.createBuffer(), null, null];  // type, offset
+            c._ns[id] = {
+                object_type: cls, 
+                handle: c.gl.createBuffer()
+            };
         }
         else if (cls == 'Program') {
             console.debug("Creating program '{0}'.".format(id));
-            c._ns[id] = [cls, c.gl.createProgram(), {}, {}]; // attributes, uniforms
+            c._ns[id] = {
+                object_type: cls,
+                handle: c.gl.createProgram(),
+                attributes: {},
+                uniforms: {},
+            };
         }
     };
 
     glir.prototype.delete = function(c, args) {
         var id = args[0];
-        var cls = c._ns[id][0];
-        var handle = c._ns[id][1];
+        var cls = c._ns[id].object_type;
+        var handle = c._ns[id].handle;
         if (cls == 'VertexBuffer') {
             console.debug("Deleting vertex buffer '{0}'.".format(id));
             c.gl.deleteBuffer(handle);
@@ -190,7 +193,7 @@ define(["jquery"], function($) {
         var fragment_code = args[2];
 
         // Get the program handle.
-        var handle = c._ns[id][1];
+        var handle = c._ns[id].handle;
 
         // Compile shaders.
         console.debug("Compiling shaders for program '{0}'.".format(id));
@@ -207,8 +210,8 @@ define(["jquery"], function($) {
         var offset = args[1];
         var data = args[2];
 
-        var buffer_type = c._ns[buffer_id][0]; // VertexBuffer or IndexBuffer
-        var buffer_handle = c._ns[buffer_id][1];
+        var buffer_type = c._ns[buffer_id].object_type; // VertexBuffer or IndexBuffer
+        var buffer_handle = c._ns[buffer_id].handle;
         var gl_type;
         if (buffer_type == 'VertexBuffer') {
             gl_type = c.gl['ARRAY_BUFFER'];
@@ -233,7 +236,7 @@ define(["jquery"], function($) {
         var stride = args[4];
         var offset = args[5];
 
-        var program_handle = c._ns[program_id][1];
+        var program_handle = c._ns[program_id].handle;
 
         console.debug("Creating attribute '{0}' for program '{1}'.".format(
                 name, program_id
@@ -242,7 +245,7 @@ define(["jquery"], function($) {
             name, type, stride, offset);
 
         // Store the attribute handle in the attributes array of the program.
-        c._ns[program_id][2][name] = attribute_handle;
+        c._ns[program_id].attributes[name] = attribute_handle;
     }
 
     glir.prototype.uniform = function(c, args) {
@@ -251,12 +254,12 @@ define(["jquery"], function($) {
         var type = args[2];
         var value = args[3];
         
-        var program_handle = c._ns[program_id][1];
+        var program_handle = c._ns[program_id].handle;
 
         c.gl.useProgram(program_handle);
 
         // Check the cache.
-        if (c._ns[program_id][3][name] == undefined) {
+        if (c._ns[program_id].uniforms[name] == undefined) {
             // If necessary, we create the uniform and cache both its handle and
             // GL function.
             console.debug("Creating uniform '{0}' for program '{1}'.".format(
@@ -265,12 +268,12 @@ define(["jquery"], function($) {
             var uniform_handle = c.gl.getUniformLocation(program_handle, name);
             var uniform_function = get_uniform_function(type);
             // We cache the uniform handle and the uniform function name as well.
-            c._ns[program_id][3][name] = [uniform_handle, uniform_function];
+            c._ns[program_id].uniforms[name] = [uniform_handle, uniform_function];
         }
         console.debug("Setting uniform '{0}' to '{1}' with {2} elements.".format(
                 name, value, value.length
             ));
-        var uniform_info = c._ns[program_id][3][name];
+        var uniform_info = c._ns[program_id].uniforms[name];
         var uniform_handle = uniform_info[0];
         var uniform_function = uniform_info[1];
         set_uniform(c, uniform_handle, uniform_function, value);
@@ -281,7 +284,7 @@ define(["jquery"], function($) {
         var mode = args[1];
         var selection = args[2];
 
-        var program_handle = c._ns[program_id][1];
+        var program_handle = c._ns[program_id].handle;
 
         if (selection.length == 2) {
             var start = selection[0];
